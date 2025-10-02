@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User } from 'lucide-react';
+import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp } from 'lucide-react';
 import { Todo } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -58,6 +58,7 @@ const TodoItem = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [isImproving, setIsImproving] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isListening, startListening, stopListening } = useSpeechRecognition(
@@ -67,12 +68,39 @@ const TodoItem = ({
     'ar-SA'
   );
 
+  // حساب عدد الأسطر في النص
+  const calculateLineCount = (text: string) => {
+    if (!text) return 0;
+    const lines = text.split('\n');
+    return lines.length;
+  };
+
+  const lineCount = calculateLineCount(todo.text);
+  const shouldShowExpandButton = lineCount > 8;
+  const maxVisibleLines = 8;
+
+  // قطع النص حسب عدد الأسطر المرئية
+  const getDisplayText = (text: string, expanded: boolean) => {
+    if (!expanded && shouldShowExpandButton) {
+      const lines = text.split('\n');
+      return lines.slice(0, maxVisibleLines).join('\n');
+    }
+    return text;
+  };
+
+  const displayText = getDisplayText(todo.text, isExpanded);
+
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
       textareaRef.current.select();
     }
   }, [isEditing]);
+
+  // إعادة تعيين حالة التوسع عند تحديث النص
+  useEffect(() => {
+    setIsExpanded(false);
+  }, [todo.text]);
 
   const handleSave = () => {
     if (editText.trim()) {
@@ -322,9 +350,37 @@ const TodoItem = ({
               }}
             >
               <div className="space-y-2">
-                <p className="text-foreground leading-relaxed whitespace-pre-wrap text-lg" style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
-                  {todo.text}
-                </p>
+                <div className="relative">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap text-lg transition-all duration-300" style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
+                    {displayText}
+                  </p>
+                  {!isExpanded && shouldShowExpandButton && (
+                    <div className="absolute bottom-0 right-0 left-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                  )}
+                </div>
+                {shouldShowExpandButton && (
+                  <div className="flex items-center justify-center pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(!isExpanded);
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition-all duration-200 hover:scale-105"
+                    >
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="w-4 h-4 transition-transform duration-200" />
+                          إظهار أقل
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                          رؤية المزيد ({lineCount - maxVisibleLines} أسطر إضافية)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
