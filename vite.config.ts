@@ -9,11 +9,6 @@ export default defineConfig(({ mode }) => ({
     host: true,
     port: 8080,
     strictPort: true,
-    // Enable HTTPS for custom domain
-    https: mode === 'production' ? {
-      key: './certs/private.key',
-      cert: './certs/certificate.crt'
-    } : false,
   },
   // Build configuration for production
   build: {
@@ -30,8 +25,8 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  // Base URL for custom domain
-  base: mode === 'production' ? 'https://your-custom-domain.com' : '/',
+  // Base URL - use relative paths for deployment
+  base: '/',
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
