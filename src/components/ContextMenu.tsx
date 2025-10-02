@@ -20,10 +20,12 @@ interface ContextMenuProps {
   onClearSelection?: () => void;
   onToggleToolbar?: () => void;
   onToggleHeader?: () => void;
+  onToggleProgress?: () => void;
   onExportDatabase?: () => void;
   onImportDatabase?: () => void;
   showToolbar?: boolean;
   showHeader?: boolean;
+  showProgress?: boolean;
   hasSelectedTasks?: boolean;
 }
 
@@ -45,10 +47,12 @@ const ContextMenu = ({
   onClearSelection,
   onToggleToolbar,
   onToggleHeader,
+  onToggleProgress,
   onExportDatabase,
   onImportDatabase,
   showToolbar,
   showHeader,
+  showProgress,
   hasSelectedTasks,
 }: ContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -88,9 +92,10 @@ const ContextMenu = ({
     { icon: CheckSquare, label: 'تحديد جميع المهام', action: onSelectAllTasks, show: !!onSelectAllTasks },
     { icon: Copy, label: 'نسخ المهام المحددة', action: onCopySelectedTasks, show: !!onCopySelectedTasks && hasSelectedTasks },
     { icon: Square, label: 'إلغاء التحديد', action: onClearSelection, show: !!onClearSelection && hasSelectedTasks },
-    { type: 'divider', show: onToggleToolbar || onToggleHeader },
+    { type: 'divider', show: onToggleToolbar || onToggleHeader || onToggleProgress },
     { icon: showToolbar ? EyeOff : Eye, label: showToolbar ? 'إخفاء شريط الأدوات' : 'إظهار شريط الأدوات', action: onToggleToolbar, show: !!onToggleToolbar },
     { icon: showHeader ? EyeOff : Eye, label: showHeader ? 'إخفاء الهيدر' : 'إظهار الهيدر', action: onToggleHeader, show: !!onToggleHeader },
+    { icon: showProgress ? EyeOff : Eye, label: showProgress ? 'إخفاء شريط التقدم' : 'إظهار شريط التقدم', action: onToggleProgress, show: !!onToggleProgress },
     { type: 'divider', show: onExportDatabase || onImportDatabase },
     { icon: FileUp, label: 'تصدير قاعدة البيانات', action: onExportDatabase, show: !!onExportDatabase },
     { icon: FileDown, label: 'استيراد قاعدة البيانات', action: onImportDatabase, show: !!onImportDatabase },

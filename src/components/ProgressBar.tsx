@@ -10,7 +10,7 @@ interface ProgressBarProps {
   onToggleCollapse?: () => void;
 }
 
-const ProgressBar = ({ total, completed, mainTasks, subTasks }: ProgressBarProps) => {
+const ProgressBar = ({ total, completed, mainTasks, subTasks, isCollapsed = false, onToggleCollapse }: ProgressBarProps) => {
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
   const remaining = total - completed;
   
@@ -45,18 +45,37 @@ const ProgressBar = ({ total, completed, mainTasks, subTasks }: ProgressBarProps
             <p className="text-sm text-muted-foreground">متابعة إنجازك اليومي</p>
           </div>
         </div>
-        <div className="text-center">
-          <div className={`text-4xl font-black ${getProgressTextColor(percentage)} transition-colors duration-500`}>
-            {percentage}%
+        <div className="flex items-center gap-4">
+          <div className="text-center">
+            <div className={`text-4xl font-black ${getProgressTextColor(percentage)} transition-colors duration-500`}>
+              {percentage}%
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {completed} من {total}
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {completed} من {total}
-          </div>
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors duration-200 group"
+              title={isCollapsed ? 'إظهار التفاصيل' : 'إخفاء التفاصيل'}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              ) : (
+                <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Enhanced Progress Bar with Multiple Indicators */}
-      <div className="relative mb-6 space-y-4">
+      {/* Collapsible Content */}
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
+        isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+      }`}>
+        {/* Enhanced Progress Bar with Multiple Indicators */}
+        <div className="relative mb-6 space-y-4">
         {/* Main Progress Bar */}
         <div className="relative">
           <div className="h-6 bg-secondary/50 rounded-full overflow-hidden shadow-inner border border-border/30">
@@ -171,6 +190,7 @@ const ProgressBar = ({ total, completed, mainTasks, subTasks }: ProgressBarProps
             <p className="text-xs text-muted-foreground font-medium">مهام فرعية</p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

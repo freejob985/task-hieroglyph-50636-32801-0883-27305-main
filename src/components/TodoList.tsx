@@ -81,6 +81,7 @@ const TodoList = () => {
   const [showToolbar, setShowToolbar] = useState(true);
   const [selectedTodos, setSelectedTodos] = useState<string[]>([]);
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const [isProgressCollapsed, setIsProgressCollapsed] = useState(false);
 
   // Load from localStorage
   useEffect(() => {
@@ -92,6 +93,7 @@ const TodoList = () => {
     const savedGlobalLineHeight = localStorage.getItem("globalLineHeight");
     const savedShowHeader = localStorage.getItem("showHeader");
     const savedShowToolbar = localStorage.getItem("showToolbar");
+    const savedProgressCollapsed = localStorage.getItem("isProgressCollapsed");
 
     if (saved) setTodos(JSON.parse(saved));
     if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
@@ -105,6 +107,7 @@ const TodoList = () => {
       setGlobalLineHeight(Number(savedGlobalLineHeight));
     if (savedShowHeader !== null) setShowHeader(savedShowHeader === "true");
     if (savedShowToolbar !== null) setShowToolbar(savedShowToolbar === "true");
+    if (savedProgressCollapsed !== null) setIsProgressCollapsed(savedProgressCollapsed === "true");
   }, []);
 
   // Auto-save
@@ -141,6 +144,10 @@ const TodoList = () => {
   useEffect(() => {
     localStorage.setItem("showToolbar", showToolbar.toString());
   }, [showToolbar]);
+
+  useEffect(() => {
+    localStorage.setItem("isProgressCollapsed", isProgressCollapsed.toString());
+  }, [isProgressCollapsed]);
 
   const addTodo = useCallback((text: string, parentId: string | null = null) => {
     if (!text.trim()) return;
@@ -283,6 +290,11 @@ const TodoList = () => {
   const clearSelection = () => {
     setSelectedTodos([]);
     toast.info("تم إلغاء التحديد");
+  };
+
+  const toggleProgressCollapse = () => {
+    setIsProgressCollapsed(!isProgressCollapsed);
+    toast.info(isProgressCollapsed ? "تم إظهار تفاصيل التقدم" : "تم إخفاء تفاصيل التقدم");
   };
 
   // Keyboard shortcuts & Double-click handler
@@ -691,6 +703,8 @@ const TodoList = () => {
             completed={stats.completed}
             mainTasks={stats.mainTasks}
             subTasks={stats.subTasks}
+            isCollapsed={isProgressCollapsed}
+            onToggleCollapse={toggleProgressCollapse}
           />
         </div>
 
@@ -814,6 +828,15 @@ const TodoList = () => {
             >
               <CheckSquare className="w-4 h-4" />
               {showSelectedOnly ? "إظهار الكل" : "إظهار المحدد فقط"}
+            </Button>
+
+            <Button
+              onClick={toggleProgressCollapse}
+              variant={isProgressCollapsed ? "default" : "outline"}
+              className="gap-2 hover:shadow-md transition-smooth"
+            >
+              {isProgressCollapsed ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              {isProgressCollapsed ? "إظهار التقدم" : "إخفاء التقدم"}
             </Button>
 
             <Button
@@ -1247,10 +1270,12 @@ const TodoList = () => {
           onClearSelection={clearSelection}
           onToggleToolbar={() => setShowToolbar(!showToolbar)}
           onToggleHeader={() => setShowHeader(!showHeader)}
+          onToggleProgress={() => setIsProgressCollapsed(!isProgressCollapsed)}
           onExportDatabase={exportDatabase}
           onImportDatabase={importDatabase}
           showToolbar={showToolbar}
           showHeader={showHeader}
+          showProgress={!isProgressCollapsed}
           hasSelectedTasks={selectedTodos.length > 0}
         />
       )}
