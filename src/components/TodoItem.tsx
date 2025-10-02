@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square } from 'lucide-react';
+import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User } from 'lucide-react';
 import { Todo } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -167,18 +167,24 @@ const TodoItem = ({
           </div>
 
           {onToggleSelect && (
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => onToggleSelect(todo.id)}
-              className="mt-1 border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground focus-visible:ring-accent"
-            />
+            <div className="selection-checkbox">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelect(todo.id)}
+                className="mt-1 border-2 border-blue-500 data-[state=checked]:bg-blue-500 data-[state=checked]:text-white focus-visible:ring-blue-500 data-[state=checked]:border-blue-500 hover:border-blue-600 transition-colors"
+                title="تحديد للنسخ أو العمليات المجمعة"
+              />
+            </div>
           )}
           
-          <Checkbox
-            checked={todo.completed}
-            onCheckedChange={() => onToggle(todo.id)}
-            className="mt-1"
-          />
+          <div className="completion-checkbox">
+            <Checkbox
+              checked={todo.completed}
+              onCheckedChange={() => onToggle(todo.id)}
+              className="mt-1 border-2 border-green-500 data-[state=checked]:bg-green-500 data-[state=checked]:text-white focus-visible:ring-green-500 data-[state=checked]:border-green-500 hover:border-green-600 transition-colors"
+              title="تمييز كمكتملة"
+            />
+          </div>
 
           {isEditing && !showTextOnly ? (
             <div className="flex-1 space-y-3">

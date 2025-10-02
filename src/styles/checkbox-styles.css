@@ -1,0 +1,88 @@
+/* تحسينات بصرية لـ checkbox */
+
+/* Checkbox للتحديد (أزرق) */
+.selection-checkbox {
+  position: relative;
+}
+
+.selection-checkbox::before {
+  content: "تحديد";
+  position: absolute;
+  top: -20px;
+  right: -10px;
+  font-size: 10px;
+  color: #3b82f6;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: white;
+  padding: 2px 4px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.selection-checkbox:hover::before {
+  opacity: 1;
+}
+
+/* Checkbox للإكمال (أخضر) */
+.completion-checkbox {
+  position: relative;
+}
+
+.completion-checkbox::before {
+  content: "إكمال";
+  position: absolute;
+  top: -20px;
+  right: -10px;
+  font-size: 10px;
+  color: #10b981;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: white;
+  padding: 2px 4px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.completion-checkbox:hover::before {
+  opacity: 1;
+}
+
+/* تحسينات إضافية للتمييز */
+.selection-checkbox [data-state="checked"] {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.completion-checkbox [data-state="checked"] {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* تأثيرات الحركة */
+.selection-checkbox [data-state="checked"] {
+  animation: checkboxPulse 0.3s ease;
+}
+
+.completion-checkbox [data-state="checked"] {
+  animation: checkboxPulse 0.3s ease;
+}
+
+@keyframes checkboxPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* تحسينات للوضع المظلم */
+.dark .selection-checkbox::before,
+.dark .completion-checkbox::before {
+  background: #1f2937;
+  color: white;
+}
