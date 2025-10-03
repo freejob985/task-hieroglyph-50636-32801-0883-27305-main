@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot } from 'lucide-react';
+import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck } from 'lucide-react';
 import { Todo } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { SavedTask } from '@/types/todo';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
@@ -55,6 +56,7 @@ const TodoItem = ({
 }: TodoItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
+  const [editUrl, setEditUrl] = useState(todo.url || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [isImproving, setIsImproving] = useState(false);
@@ -102,9 +104,15 @@ const TodoItem = ({
     setIsExpanded(false);
   }, [todo.text]);
 
+  // إعادة تعيين حالة التحرير عند تحديث المهمة
+  useEffect(() => {
+    setEditText(todo.text);
+    setEditUrl(todo.url || '');
+  }, [todo.text, todo.url]);
+
   const handleSave = () => {
     if (editText.trim()) {
-      onUpdate(todo.id, editText.trim());
+      onUpdate(todo.id, editText.trim(), { url: editUrl.trim() || undefined });
       setIsEditing(false);
     }
   };
@@ -144,6 +152,13 @@ const TodoItem = ({
     toast.success('تم نسخ النص');
   };
 
+  const handleCopyUrl = () => {
+    if (todo.url) {
+      navigator.clipboard.writeText(todo.url);
+      toast.success('تم نسخ الرابط');
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showSuggestions && filteredSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -169,6 +184,7 @@ const TodoItem = ({
       handleSave();
     } else if (e.key === 'Escape') {
       setEditText(todo.text);
+      setEditUrl(todo.url || '');
       setIsEditing(false);
       setShowSuggestions(false);
     }
@@ -224,7 +240,22 @@ const TodoItem = ({
           </div>
 
           {isEditing && !showTextOnly ? (
-            <div className="flex-1 space-y-3">
+              <div className="flex-1 space-y-3">
+              {/* URL Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Link className="w-4 h-4" />
+                  رابط المشكلة (اختياري)
+                </label>
+                <Input
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  placeholder="https://example.com/problem-url"
+                  className="w-full"
+                />
+              </div>
+
               {/* Text Area with Controls */}
               <div className="relative">
                 <div className="flex items-center gap-2 mb-2">
@@ -311,6 +342,7 @@ const TodoItem = ({
                 <Button
                   onClick={() => {
                     setEditText(todo.text);
+                    setEditUrl(todo.url || '');
                     setIsEditing(false);
                   }}
                   variant="outline"
@@ -374,6 +406,40 @@ const TodoItem = ({
                   }`} style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
                     {displayText}
                   </p>
+                  
+                  {/* URL Display */}
+                  {todo.url && (
+                    <div className="mt-3 p-3 bg-secondary/30 rounded-lg border border-border/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Link className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium text-muted-foreground">رابط المشكلة:</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyUrl();
+                          }}
+                          className="h-6 w-6 p-0 hover:bg-primary/10"
+                          title="نسخ الرابط"
+                        >
+                          <CopyCheck className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <a
+                        href={todo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors break-all"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="text-sm">{todo.url}</span>
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                      </a>
+                    </div>
+                  )}
                   {!isExpanded && shouldShowExpandButton && (
                     <div className="absolute bottom-0 right-0 left-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                   )}

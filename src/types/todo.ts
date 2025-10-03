@@ -10,6 +10,7 @@ export interface Todo {
   technologies?: string[];
   notes?: string;
   fontSize?: number;
+  url?: string;
 }
 
 export interface Workspace {

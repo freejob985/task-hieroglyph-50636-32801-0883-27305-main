@@ -105,3 +105,4 @@ const createShortcutIcon = (type, size) => {
 console.log('\n🎉 All icons generated successfully!');
 console.log('📝 Note: SVG files created. For production, convert to PNG using a tool like Inkscape or online converters.');
 
+

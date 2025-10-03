@@ -250,15 +250,21 @@ const TodoList = () => {
           (t) => t.parentId === todo.id && !t.completed
         );
         let result = `○ ${todo.text}`;
+        if (todo.url) {
+          result += `\n  🔗 ${todo.url}`;
+        }
         subTasks.forEach((sub) => {
           result += `\n  ○ ${sub.text}`;
+          if (sub.url) {
+            result += `\n    🔗 ${sub.url}`;
+          }
         });
         return result;
       })
       .join("\n");
 
     navigator.clipboard.writeText(text);
-    toast.success("تم نسخ المهام غير المكتملة");
+    toast.success("تم نسخ المهام غير المكتملة مع الروابط");
   };
 
   const copySelectedTasks = () => {
@@ -274,15 +280,21 @@ const TodoList = () => {
           (t) => t.parentId === todo.id && selectedTodos.includes(t.id)
         );
         let result = `○ ${todo.text}`;
+        if (todo.url) {
+          result += `\n  🔗 ${todo.url}`;
+        }
         subTasks.forEach((sub) => {
           result += `\n  ○ ${sub.text}`;
+          if (sub.url) {
+            result += `\n    🔗 ${sub.url}`;
+          }
         });
         return result;
       })
       .join("\n");
 
     navigator.clipboard.writeText(text);
-    toast.success(`تم نسخ ${selectedTodos.length} مهمة`);
+    toast.success(`تم نسخ ${selectedTodos.length} مهمة مع الروابط`);
     setSelectedTodos([]);
   };
 
@@ -301,6 +313,38 @@ const TodoList = () => {
   const clearSelection = () => {
     setSelectedTodos([]);
     toast.info("تم إلغاء التحديد");
+  };
+
+  const addUrlToSelected = () => {
+    if (selectedTodos.length === 0) {
+      toast.error("لم يتم تحديد أي مهام");
+      return;
+    }
+
+    const url = prompt("أدخل الرابط للمهام المحددة:");
+    if (!url || !url.trim()) {
+      toast.error("لم يتم إدخال رابط صحيح");
+      return;
+    }
+
+    // Validate URL
+    try {
+      new URL(url);
+    } catch {
+      toast.error("الرابط غير صحيح");
+      return;
+    }
+
+    setTodos(prevTodos =>
+      prevTodos.map(todo =>
+        selectedTodos.includes(todo.id)
+          ? { ...todo, url: url.trim(), updatedAt: Date.now() }
+          : todo
+      )
+    );
+
+    toast.success(`تم إضافة الرابط لـ ${selectedTodos.length} مهمة`);
+    setSelectedTodos([]);
   };
 
   const toggleProgressCollapse = () => {
@@ -1395,6 +1439,7 @@ const TodoList = () => {
           onExportDatabase={exportDatabase}
           onImportDatabase={importDatabase}
           onClearAllData={clearAllData}
+          onAddUrlToSelected={addUrlToSelected}
           showToolbar={showToolbar}
           showHeader={showHeader}
           showProgress={!isProgressCollapsed}

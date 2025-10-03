@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Edit3, Trash2, Copy, Clipboard, ListTree, BarChart3, FileUp, FileDown, Eye, EyeOff, Settings as SettingsIcon, CheckSquare, Square, Filter, List, ChevronRight, MoreHorizontal, AlertTriangle, Database } from 'lucide-react';
+import { Plus, Edit3, Trash2, Copy, Clipboard, ListTree, BarChart3, FileUp, FileDown, Eye, EyeOff, Settings as SettingsIcon, CheckSquare, Square, Filter, List, ChevronRight, MoreHorizontal, AlertTriangle, Database, Link } from 'lucide-react';
 import { ContextMenuPosition } from '@/types/todo';
 
 interface ContextMenuProps {
@@ -30,6 +30,7 @@ interface ContextMenuProps {
   hasSelectedTasks?: boolean;
   showSelectedOnly?: boolean;
   onClearAllData?: () => void;
+  onAddUrlToSelected?: () => void;
 }
 
 const ContextMenu = ({
@@ -60,6 +61,7 @@ const ContextMenu = ({
   hasSelectedTasks,
   showSelectedOnly,
   onClearAllData,
+  onAddUrlToSelected,
 }: ContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -114,6 +116,7 @@ const ContextMenu = ({
         { icon: CheckSquare, label: 'تحديد جميع المهام', action: onSelectAllTasks, show: !!onSelectAllTasks },
         { icon: Copy, label: 'نسخ جميع المهام', action: onCopyAllTasks, show: !!onCopyAllTasks, shortcut: 'Ctrl+C' },
         { icon: Copy, label: 'نسخ المهام المحددة', action: onCopySelectedTasks, show: !!onCopySelectedTasks && hasSelectedTasks },
+        { icon: Link, label: 'إضافة رابط للمهام المحددة', action: onAddUrlToSelected, show: !!onAddUrlToSelected && hasSelectedTasks },
         { icon: Square, label: 'إلغاء التحديد', action: onClearSelection, show: !!onClearSelection && hasSelectedTasks },
         { type: 'divider', show: hasSelectedTasks && onToggleSelectedOnly },
         { icon: showSelectedOnly ? List : Filter, label: showSelectedOnly ? 'إظهار الكل' : 'إظهار المحدد فقط', action: onToggleSelectedOnly, show: !!onToggleSelectedOnly && hasSelectedTasks },
