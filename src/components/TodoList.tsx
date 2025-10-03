@@ -83,6 +83,8 @@ const TodoList = () => {
   const [selectedTodos, setSelectedTodos] = useState<string[]>([]);
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
   const [isProgressCollapsed, setIsProgressCollapsed] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Load from localStorage
   useEffect(() => {
