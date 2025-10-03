@@ -21,6 +21,7 @@ import Statistics from "./Statistics";
 import SavedTasksManager from "./SavedTasksManager";
 import ThemeToggle from "./ThemeToggle";
 import CheckboxLegend from "./CheckboxLegend";
+import WorkspaceManager from "./WorkspaceManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -87,6 +88,7 @@ const TodoList = () => {
   useEffect(() => {
     const saved = localStorage.getItem("todos");
     const savedWorkspaces = localStorage.getItem("workspaces");
+    const savedCurrentWorkspace = localStorage.getItem("currentWorkspace");
     const savedTasksData = localStorage.getItem("savedTasks");
     const savedGlobalPromptMode = localStorage.getItem("globalPromptMode");
     const savedGlobalFontSize = localStorage.getItem("globalFontSize");
@@ -97,6 +99,7 @@ const TodoList = () => {
 
     if (saved) setTodos(JSON.parse(saved));
     if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
+    if (savedCurrentWorkspace) setCurrentWorkspace(savedCurrentWorkspace);
     if (savedTasksData) setSavedTasks(JSON.parse(savedTasksData));
     if (savedGlobalPromptMode)
       setGlobalPromptMode(
@@ -114,12 +117,20 @@ const TodoList = () => {
   useEffect(() => {
     if (todos.length > 0) {
       localStorage.setItem("todos", JSON.stringify(todos));
+      // Also save to current workspace if one is active
+      if (currentWorkspace) {
+        saveCurrentWorkspace(currentWorkspace, todos);
+      }
     }
-  }, [todos]);
+  }, [todos, currentWorkspace]);
 
   useEffect(() => {
     localStorage.setItem("workspaces", JSON.stringify(workspaces));
   }, [workspaces]);
+
+  useEffect(() => {
+    localStorage.setItem("currentWorkspace", currentWorkspace || "");
+  }, [currentWorkspace]);
 
   useEffect(() => {
     localStorage.setItem("savedTasks", JSON.stringify(savedTasks));
@@ -327,6 +338,20 @@ const TodoList = () => {
     };
   }, [addTodo, contextMenu, copyAllTasks, todos]);
 
+  const createWorkspace = (workspaceData: Omit<Workspace, "id">) => {
+    const workspace: Workspace = {
+      ...workspaceData,
+      id: Date.now().toString(),
+    };
+    setWorkspaces([...workspaces, workspace]);
+  };
+
+  const updateWorkspace = (id: string, updates: Partial<Workspace>) => {
+    setWorkspaces(workspaces.map(ws => 
+      ws.id === id ? { ...ws, ...updates } : ws
+    ));
+  };
+
   const saveWorkspace = async () => {
     const { value: name } = await Swal.fire({
       title: "حفظ مساحة العمل",
@@ -344,11 +369,36 @@ const TodoList = () => {
         name,
         todos: [...todos],
         createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
 
       setWorkspaces([...workspaces, workspace]);
       toast.success("تم حفظ مساحة العمل");
     }
+  };
+
+  const changeWorkspace = (workspaceId: string | null) => {
+    if (workspaceId) {
+      const workspace = workspaces.find((ws) => ws.id === workspaceId);
+      if (workspace) {
+        setTodos(workspace.todos);
+        setCurrentWorkspace(workspaceId);
+        toast.success(`تم التبديل إلى: ${workspace.name}`);
+      }
+    } else {
+      // Switch to default workspace (empty todos)
+      setTodos([]);
+      setCurrentWorkspace(null);
+      toast.info("تم التبديل إلى مساحة العمل الافتراضية");
+    }
+  };
+
+  const saveCurrentWorkspace = (workspaceId: string, todos: Todo[]) => {
+    setWorkspaces(workspaces.map(ws => 
+      ws.id === workspaceId 
+        ? { ...ws, todos: [...todos], updatedAt: Date.now() }
+        : ws
+    ));
   };
 
   const loadWorkspace = async () => {
@@ -373,12 +423,7 @@ const TodoList = () => {
     });
 
     if (workspaceId) {
-      const workspace = workspaces.find((ws) => ws.id === workspaceId);
-      if (workspace) {
-        setTodos(workspace.todos);
-        setCurrentWorkspace(workspaceId);
-        toast.success(`تم تحميل: ${workspace.name}`);
-      }
+      changeWorkspace(workspaceId);
     }
   };
 
@@ -711,6 +756,19 @@ const TodoList = () => {
         {/* Checkbox Legend */}
         {selectedTodos.length > 0 && <CheckboxLegend />}
 
+        {/* Workspace Manager */}
+        <div className="mb-6">
+          <WorkspaceManager
+            workspaces={workspaces}
+            currentWorkspace={currentWorkspace}
+            onWorkspaceChange={changeWorkspace}
+            onWorkspaceCreate={createWorkspace}
+            onWorkspaceUpdate={updateWorkspace}
+            onWorkspaceDelete={deleteWorkspace}
+            onWorkspaceSave={saveCurrentWorkspace}
+          />
+        </div>
+
         {/* Toolbar */}
         {showToolbar && (
           <div className="mb-6 flex flex-wrap gap-2 justify-center">
@@ -775,30 +833,6 @@ const TodoList = () => {
               {showTextOnly ? "إظهار التحرير" : "نص فقط"}
             </Button>
 
-            <Button
-              onClick={saveWorkspace}
-              variant="outline"
-              className="gap-2 hover:shadow-md transition-smooth"
-            >
-              <Save className="w-4 h-4" />
-              حفظ المساحة
-            </Button>
-            <Button
-              onClick={loadWorkspace}
-              variant="outline"
-              className="gap-2 hover:shadow-md transition-smooth"
-            >
-              <FolderOpen className="w-4 h-4" />
-              تحميل مساحة
-            </Button>
-            <Button
-              onClick={deleteWorkspace}
-              variant="outline"
-              className="gap-2 hover:shadow-md transition-smooth"
-            >
-              <Trash2 className="w-4 h-4" />
-              حذف مساحة
-            </Button>
             <Button
               onClick={copyAllTasks}
               variant="outline"
@@ -1167,13 +1201,22 @@ const TodoList = () => {
                         </Draggable>
 
                         {visibleSubTodos.length > 0 && (
-                          <Droppable droppableId={todo.id}>
-                            {(provided) => (
-                              <div
-                                {...provided.droppableProps}
-                                ref={provided.innerRef}
-                                className="space-y-2"
-                              >
+                          <div className="ml-6 mt-3">
+                            {/* Subtasks Header */}
+                            <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                              <span className="text-sm font-medium text-primary">
+                                المهام الفرعية ({visibleSubTodos.length})
+                              </span>
+                            </div>
+                            
+                            <Droppable droppableId={todo.id}>
+                              {(provided) => (
+                                <div
+                                  {...provided.droppableProps}
+                                  ref={provided.innerRef}
+                                  className="space-y-2"
+                                >
                                 {visibleSubTodos.map((subTodo, subIndex) => (
                                   <Draggable
                                     key={subTodo.id}
@@ -1217,9 +1260,10 @@ const TodoList = () => {
                                   </Draggable>
                                 ))}
                                 {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
+                                </div>
+                              )}
+                            </Droppable>
+                          </div>
                         )}
                       </div>
                     );

@@ -47,6 +47,27 @@ const Statistics = ({ todos }: StatisticsProps) => {
       trend: completionRate >= 75 ? 'excellent' : completionRate >= 50 ? 'good' : 'needs-improvement'
     },
     {
+      icon: BarChart3,
+      label: 'المهام الرئيسية',
+      value: stats.mainTasks.toString(),
+      color: 'text-blue-600',
+      bg: 'bg-gradient-to-br from-blue-50 to-blue-25',
+      border: 'border-blue-200',
+      description: 'عدد المهام الرئيسية',
+      trend: 'stable'
+    },
+    {
+      icon: BarChart3,
+      label: 'المهام الفرعية',
+      value: stats.subTasks.toString(),
+      color: 'text-purple-600',
+      bg: 'bg-gradient-to-br from-purple-50 to-purple-25',
+      border: 'border-purple-200',
+      description: 'عدد المهام الفرعية',
+      trend: 'stable',
+      badge: stats.subTasks > 0 ? 'نشط' : 'غير موجود'
+    },
+    {
       icon: Calendar,
       label: 'مهام اليوم',
       value: stats.createdToday,
@@ -105,7 +126,14 @@ const Statistics = ({ todos }: StatisticsProps) => {
                   <div className={`p-3 rounded-xl ${stat.bg} shadow-sm`}>
                     <Icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
-                  <span className="text-2xl opacity-70">{getTrendIcon(stat.trend)}</span>
+                  <div className="flex items-center gap-2">
+                    {stat.badge && (
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                        {stat.badge}
+                      </span>
+                    )}
+                    <span className="text-2xl opacity-70">{getTrendIcon(stat.trend)}</span>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">

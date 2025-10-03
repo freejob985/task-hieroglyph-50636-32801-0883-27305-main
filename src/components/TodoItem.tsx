@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot } from 'lucide-react';
 import { Todo } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -186,9 +186,18 @@ const TodoItem = ({
       className={`group relative ${isSubTask ? 'mr-8' : ''}`}
       onContextMenu={(e) => onContextMenu(e, todo)}
     >
+      {/* Subtask Visual Indicator */}
+      {isSubTask && (
+        <div className="absolute -left-6 top-6 w-4 h-4 flex items-center justify-center">
+          <div className="w-2 h-2 bg-primary/60 rounded-full"></div>
+        </div>
+      )}
+      
       <div className={`bg-card rounded-2xl border-2 border-border p-6 transition-smooth hover:shadow-xl hover:border-primary/50 ${
         todo.completed ? 'opacity-60 bg-success/5 border-success/20' : ''
-      } ${isDragging ? 'shadow-2xl scale-105' : ''} ${isSelected ? 'ring-2 ring-primary border-primary' : ''}`}>
+      } ${isDragging ? 'shadow-2xl scale-105' : ''} ${isSelected ? 'ring-2 ring-primary border-primary' : ''} ${
+        isSubTask ? 'border-l-4 border-l-primary/30 bg-gradient-to-r from-primary/5 to-transparent' : ''
+      }`}>
         <div className="flex items-start gap-3">
           <div {...dragHandleProps}>
             <GripVertical className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-smooth cursor-grab active:cursor-grabbing" />
@@ -351,7 +360,18 @@ const TodoItem = ({
             >
               <div className="space-y-2">
                 <div className="relative">
-                  <p className="text-foreground leading-relaxed whitespace-pre-wrap text-lg transition-all duration-300" style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
+                  {/* Subtask Prefix */}
+                  {isSubTask && (
+                    <div className="flex items-start gap-2 mb-2">
+                      <ArrowRight className="w-4 h-4 text-primary/70 mt-1 flex-shrink-0" />
+                      <span className="text-xs text-primary/70 font-medium bg-primary/10 px-2 py-1 rounded-full">
+                        مهمة فرعية
+                      </span>
+                    </div>
+                  )}
+                  <p className={`text-foreground leading-relaxed whitespace-pre-wrap transition-all duration-300 ${
+                    isSubTask ? 'text-base' : 'text-lg'
+                  }`} style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
                     {displayText}
                   </p>
                   {!isExpanded && shouldShowExpandButton && (
@@ -385,17 +405,27 @@ const TodoItem = ({
             </div>
           )}
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(todo.id);
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-smooth text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 mr-auto"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2 mr-auto">
+            {/* Subtask Indicator in Toolbar */}
+            {isSubTask && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-full">
+                <Dot className="w-3 h-3 text-primary" />
+                <span className="text-xs text-primary font-medium">فرعية</span>
+              </div>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(todo.id);
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-smooth text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

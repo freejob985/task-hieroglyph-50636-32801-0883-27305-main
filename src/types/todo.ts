@@ -17,6 +17,9 @@ export interface Workspace {
   name: string;
   todos: Todo[];
   createdAt: number;
+  updatedAt: number;
+  description?: string;
+  color?: string;
 }
 
 export interface ContextMenuPosition {

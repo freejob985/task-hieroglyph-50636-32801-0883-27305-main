@@ -54,6 +54,13 @@ const ProgressBar = ({ total, completed, mainTasks, subTasks, isCollapsed = fals
               {completed} من {total}
             </div>
           </div>
+          {/* Subtasks Breakdown */}
+          {subTasks > 0 && (
+            <div className="text-center">
+              <div className="text-lg font-semibold text-primary">{subTasks}</div>
+              <div className="text-xs text-muted-foreground">مهام فرعية</div>
+            </div>
+          )}
           {onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
