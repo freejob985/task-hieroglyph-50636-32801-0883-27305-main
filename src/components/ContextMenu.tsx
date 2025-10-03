@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Edit3, Trash2, Copy, Clipboard, ListTree, BarChart3, FileUp, FileDown, Eye, EyeOff, Settings as SettingsIcon, CheckSquare, Square, Filter, List, ChevronRight, MoreHorizontal, AlertTriangle, Database, Link } from 'lucide-react';
+import { Plus, Edit3, Trash2, Copy, Clipboard, ListTree, BarChart3, FileUp, FileDown, Eye, EyeOff, Settings as SettingsIcon, CheckSquare, Square, Filter, List, ChevronRight, MoreHorizontal, AlertTriangle, Database, Link, Archive } from 'lucide-react';
 import { ContextMenuPosition } from '@/types/todo';
 
 interface ContextMenuProps {
@@ -31,6 +31,7 @@ interface ContextMenuProps {
   showSelectedOnly?: boolean;
   onClearAllData?: () => void;
   onAddUrlToSelected?: () => void;
+  onArchiveTask?: () => void;
 }
 
 const ContextMenu = ({
@@ -62,6 +63,7 @@ const ContextMenu = ({
   showSelectedOnly,
   onClearAllData,
   onAddUrlToSelected,
+  onArchiveTask,
 }: ContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -94,6 +96,7 @@ const ContextMenu = ({
     { icon: Edit3, label: 'تعديل', action: onEdit, show: true },
     { icon: Copy, label: 'نسخ', action: onCopy, show: true },
     { icon: Clipboard, label: 'لصق', action: onPaste, show: hasCopiedTask },
+    { icon: Archive, label: 'أرشفة', action: onArchiveTask, show: !isSubTask && !!onArchiveTask },
     { icon: Trash2, label: 'حذف', action: onDelete, show: true, danger: true },
     { type: 'divider', show: true },
     { 

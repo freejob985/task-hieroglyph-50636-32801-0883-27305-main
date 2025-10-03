@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Todo, ContextMenuPosition, Workspace, SavedTask } from "@/types/todo";
+import { Todo, ContextMenuPosition, Workspace, SavedTask, ArchivedTask } from "@/types/todo";
 import TodoItem from "./TodoItem";
 import ContextMenu from "./ContextMenu";
 import ProgressBar from "./ProgressBar";
@@ -24,6 +24,7 @@ import SavedTasksManager from "./SavedTasksManager";
 import ThemeToggle from "./ThemeToggle";
 import CheckboxLegend from "./CheckboxLegend";
 import WorkspaceManager from "./WorkspaceManager";
+import ArchiveManager from "./ArchiveManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -87,6 +88,7 @@ const TodoList = () => {
   const [isProgressCollapsed, setIsProgressCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [archivedTasks, setArchivedTasks] = useState<ArchivedTask[]>([]);
 
   const saveCurrentWorkspace = useCallback((workspaceId: string, todos: Todo[]) => {
     setWorkspaces(workspaces.map(ws => 
@@ -102,6 +104,7 @@ const TodoList = () => {
     const savedWorkspaces = localStorage.getItem("workspaces");
     const savedCurrentWorkspace = localStorage.getItem("currentWorkspace");
     const savedTasksData = localStorage.getItem("savedTasks");
+    const savedArchivedTasks = localStorage.getItem("archivedTasks");
     const savedGlobalPromptMode = localStorage.getItem("globalPromptMode");
     const savedGlobalFontSize = localStorage.getItem("globalFontSize");
     const savedGlobalLineHeight = localStorage.getItem("globalLineHeight");
@@ -113,6 +116,7 @@ const TodoList = () => {
     if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
     if (savedCurrentWorkspace) setCurrentWorkspace(savedCurrentWorkspace);
     if (savedTasksData) setSavedTasks(JSON.parse(savedTasksData));
+    if (savedArchivedTasks) setArchivedTasks(JSON.parse(savedArchivedTasks));
     if (savedGlobalPromptMode)
       setGlobalPromptMode(
         savedGlobalPromptMode as "full-code" | "code-changes" | "notes"
@@ -147,6 +151,10 @@ const TodoList = () => {
   useEffect(() => {
     localStorage.setItem("savedTasks", JSON.stringify(savedTasks));
   }, [savedTasks]);
+
+  useEffect(() => {
+    localStorage.setItem("archivedTasks", JSON.stringify(archivedTasks));
+  }, [archivedTasks]);
 
   useEffect(() => {
     localStorage.setItem("globalPromptMode", globalPromptMode);
@@ -658,6 +666,65 @@ const TodoList = () => {
     input.click();
   };
 
+  // وظائف الأرشفة
+  const archiveTask = (mainTaskId: string, reason?: string) => {
+    const mainTask = todos.find(t => t.id === mainTaskId && !t.parentId);
+    if (!mainTask) {
+      toast.error('المهمة الرئيسية غير موجودة');
+      return;
+    }
+
+    const subTasks = todos.filter(t => t.parentId === mainTaskId);
+    
+    const archivedTask: ArchivedTask = {
+      id: Date.now().toString(),
+      mainTask: { ...mainTask },
+      subTasks: [...subTasks],
+      archivedAt: Date.now(),
+      archivedBy: 'المستخدم', // يمكن تحسين هذا لاحقاً
+      reason: reason
+    };
+
+    setArchivedTasks(prev => [archivedTask, ...prev]);
+    
+    // حذف المهمة الرئيسية والمهام الفرعية من القائمة الحالية
+    const idsToRemove = [mainTaskId, ...subTasks.map(t => t.id)];
+    setTodos(prev => prev.filter(t => !idsToRemove.includes(t.id)));
+    
+    toast.success('تم أرشفة المهمة بنجاح');
+  };
+
+  const restoreTask = (archivedTask: ArchivedTask) => {
+    // إضافة المهمة الرئيسية
+    const restoredMainTask = {
+      ...archivedTask.mainTask,
+      id: Date.now().toString(), // إنشاء معرف جديد
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    // إضافة المهام الفرعية مع تحديث parentId
+    const restoredSubTasks = archivedTask.subTasks.map(subTask => ({
+      ...subTask,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // إنشاء معرف فريد
+      parentId: restoredMainTask.id,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }));
+
+    setTodos(prev => [...prev, restoredMainTask, ...restoredSubTasks]);
+    
+    // حذف المهمة من الأرشيف
+    setArchivedTasks(prev => prev.filter(t => t.id !== archivedTask.id));
+    
+    toast.success('تم استعادة المهمة بنجاح');
+  };
+
+  const deleteArchivedTask = (archivedTaskId: string) => {
+    setArchivedTasks(prev => prev.filter(t => t.id !== archivedTaskId));
+    toast.success('تم حذف المهمة نهائياً من الأرشيف');
+  };
+
   const clearAllData = async () => {
     const result = await Swal.fire({
       title: '⚠️ تأكيد مسح جميع البيانات',
@@ -670,6 +737,7 @@ const TodoList = () => {
               <li>• جميع المهام ({todos.length} مهمة)</li>
               <li>• جميع مساحات العمل ({workspaces.length} مساحة)</li>
               <li>• جميع المهام المحفوظة ({savedTasks.length} مهمة)</li>
+              <li>• جميع المهام المؤرشفة ({archivedTasks.length} مهمة)</li>
               <li>• جميع الإعدادات</li>
             </ul>
           </div>
@@ -700,6 +768,7 @@ const TodoList = () => {
       setTodos([]);
       setWorkspaces([]);
       setSavedTasks([]);
+      setArchivedTasks([]);
       setSelectedTodos([]);
       setCurrentWorkspace(null);
       setShowSelectedOnly(false);
@@ -708,6 +777,7 @@ const TodoList = () => {
       localStorage.removeItem('todos');
       localStorage.removeItem('workspaces');
       localStorage.removeItem('savedTasks');
+      localStorage.removeItem('archivedTasks');
       localStorage.removeItem('currentWorkspace');
       localStorage.removeItem('settings');
       
@@ -787,6 +857,13 @@ const TodoList = () => {
       position: { x: e.clientX, y: e.clientY },
       todo,
     });
+  };
+
+  const handleArchiveTaskFromContext = () => {
+    if (contextMenu?.todo && !contextMenu.todo.parentId) {
+      archiveTask(contextMenu.todo.id);
+      setContextMenu(null);
+    }
   };
 
   const handleGlobalContextMenu = (e: React.MouseEvent) => {
@@ -1012,6 +1089,14 @@ const TodoList = () => {
               {isProgressCollapsed ? "إظهار التقدم" : "إخفاء التقدم"}
             </Button>
 
+            <ArchiveManager
+              archivedTasks={archivedTasks}
+              onRestoreTask={restoreTask}
+              onDeleteArchivedTask={deleteArchivedTask}
+              onArchiveTask={archiveTask}
+              todos={todos}
+            />
+
             <Button
               onClick={clearAllData}
               variant="destructive"
@@ -1047,7 +1132,7 @@ const TodoList = () => {
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6 mt-4">
-                  <Statistics todos={todos} />
+                  <Statistics todos={todos} archivedTasks={archivedTasks} />
 
                   {/* UI Settings */}
                   <div className="p-4 bg-secondary/20 rounded-lg space-y-4">
@@ -1542,6 +1627,7 @@ const TodoList = () => {
           onImportDatabase={importDatabase}
           onClearAllData={clearAllData}
           onAddUrlToSelected={addUrlToSelected}
+          onArchiveTask={handleArchiveTaskFromContext}
           showToolbar={showToolbar}
           showHeader={showHeader}
           showProgress={!isProgressCollapsed}

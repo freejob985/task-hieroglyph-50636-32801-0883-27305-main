@@ -1,13 +1,14 @@
-import { BarChart3, TrendingUp, Calendar, Clock, Target, Zap, Award, Activity, Users, CheckCircle2, Circle, Star, Trophy, Flame, Rocket } from 'lucide-react';
-import { Todo } from '@/types/todo';
+import { BarChart3, TrendingUp, Calendar, Clock, Target, Zap, Award, Activity, Users, CheckCircle2, Circle, Star, Trophy, Flame, Rocket, Archive } from 'lucide-react';
+import { Todo, ArchivedTask } from '@/types/todo';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
 interface StatisticsProps {
   todos: Todo[];
+  archivedTasks?: ArchivedTask[];
 }
 
-const Statistics = ({ todos }: StatisticsProps) => {
+const Statistics = ({ todos, archivedTasks = [] }: StatisticsProps) => {
   const now = Date.now();
   const today = new Date().setHours(0, 0, 0, 0);
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -21,6 +22,10 @@ const Statistics = ({ todos }: StatisticsProps) => {
     mainTasks: todos.filter(t => !t.parentId).length,
     subTasks: todos.filter(t => t.parentId).length,
     avgCompletionTime: calculateAvgCompletionTime(todos),
+    // إحصائيات الأرشيف
+    archivedTasks: archivedTasks.length,
+    archivedMainTasks: archivedTasks.length,
+    archivedSubTasks: archivedTasks.reduce((acc, task) => acc + task.subTasks.length, 0),
     // إحصائيات متقدمة
     streak: calculateStreak(todos),
     productivity: calculateProductivity(todos),
@@ -321,6 +326,15 @@ const Statistics = ({ todos }: StatisticsProps) => {
               <p className="text-3xl font-black text-orange-600 dark:text-orange-400 mb-2">{stats.pending}</p>
               <p className="text-sm font-bold text-foreground mb-1">متبقية</p>
               <p className="text-xs text-muted-foreground">في الانتظار</p>
+            </div>
+            
+            <div className="text-center group">
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                <Archive className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mb-2">{stats.archivedMainTasks}</p>
+              <p className="text-sm font-bold text-foreground mb-1">مؤرشفة</p>
+              <p className="text-xs text-muted-foreground">المهام المحفوظة</p>
             </div>
           </div>
           
