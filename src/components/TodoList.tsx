@@ -610,6 +610,73 @@ const TodoList = () => {
     input.click();
   };
 
+  const clearAllData = async () => {
+    const result = await Swal.fire({
+      title: '⚠️ تأكيد مسح جميع البيانات',
+      html: `
+        <div class="text-right">
+          <p class="mb-4 text-lg">هل أنت متأكد من أنك تريد مسح جميع البيانات؟</p>
+          <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+            <p class="text-red-700 dark:text-red-300 font-medium mb-2">سيتم حذف:</p>
+            <ul class="text-red-600 dark:text-red-400 text-sm space-y-1">
+              <li>• جميع المهام ({todos.length} مهمة)</li>
+              <li>• جميع مساحات العمل ({workspaces.length} مساحة)</li>
+              <li>• جميع المهام المحفوظة ({savedTasks.length} مهمة)</li>
+              <li>• جميع الإعدادات</li>
+            </ul>
+          </div>
+          <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            <strong>تحذير:</strong> لا يمكن التراجع عن هذا الإجراء!
+          </p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'نعم، امسح جميع البيانات',
+      cancelButtonText: 'إلغاء',
+      reverseButtons: true,
+      focusCancel: true,
+      customClass: {
+        popup: 'swal2-popup-arabic',
+        title: 'swal2-title-arabic',
+        htmlContainer: 'swal2-html-container-arabic',
+        confirmButton: 'swal2-confirm-button-arabic',
+        cancelButton: 'swal2-cancel-button-arabic'
+      }
+    });
+
+    if (result.isConfirmed) {
+      // مسح جميع البيانات
+      setTodos([]);
+      setWorkspaces([]);
+      setSavedTasks([]);
+      setSelectedTodos([]);
+      setCurrentWorkspace(null);
+      setShowSelectedOnly(false);
+      
+      // مسح localStorage
+      localStorage.removeItem('todos');
+      localStorage.removeItem('workspaces');
+      localStorage.removeItem('savedTasks');
+      localStorage.removeItem('currentWorkspace');
+      localStorage.removeItem('settings');
+      
+      // إعادة تعيين الإعدادات
+      setGlobalPromptMode(false);
+      setGlobalFontSize(16);
+      setGlobalLineHeight(1.5);
+      setShowHeader(true);
+      setShowToolbar(true);
+      setShowProgress(true);
+      
+      toast.success('تم مسح جميع البيانات بنجاح', {
+        description: 'تم إعادة تعيين التطبيق إلى حالته الافتراضية'
+      });
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
 
@@ -871,6 +938,15 @@ const TodoList = () => {
             >
               {isProgressCollapsed ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               {isProgressCollapsed ? "إظهار التقدم" : "إخفاء التقدم"}
+            </Button>
+
+            <Button
+              onClick={clearAllData}
+              variant="destructive"
+              className="gap-2 hover:shadow-md transition-smooth"
+            >
+              <Trash2 className="w-4 h-4" />
+              مسح جميع البيانات
             </Button>
 
             <Button
@@ -1318,6 +1394,7 @@ const TodoList = () => {
           onToggleSelectedOnly={() => setShowSelectedOnly(!showSelectedOnly)}
           onExportDatabase={exportDatabase}
           onImportDatabase={importDatabase}
+          onClearAllData={clearAllData}
           showToolbar={showToolbar}
           showHeader={showHeader}
           showProgress={!isProgressCollapsed}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Edit3, Trash2, Copy, Clipboard, ListTree, BarChart3, FileUp, FileDown, Eye, EyeOff, Settings as SettingsIcon, CheckSquare, Square, Filter, List, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit3, Trash2, Copy, Clipboard, ListTree, BarChart3, FileUp, FileDown, Eye, EyeOff, Settings as SettingsIcon, CheckSquare, Square, Filter, List, ChevronRight, MoreHorizontal, AlertTriangle, Database } from 'lucide-react';
 import { ContextMenuPosition } from '@/types/todo';
 
 interface ContextMenuProps {
@@ -29,6 +29,7 @@ interface ContextMenuProps {
   showProgress?: boolean;
   hasSelectedTasks?: boolean;
   showSelectedOnly?: boolean;
+  onClearAllData?: () => void;
 }
 
 const ContextMenu = ({
@@ -58,6 +59,7 @@ const ContextMenu = ({
   showProgress,
   hasSelectedTasks,
   showSelectedOnly,
+  onClearAllData,
 }: ContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -126,6 +128,17 @@ const ContextMenu = ({
         { icon: showToolbar ? EyeOff : Eye, label: showToolbar ? 'إخفاء شريط الأدوات' : 'إظهار شريط الأدوات', action: onToggleToolbar, show: !!onToggleToolbar },
         { icon: showHeader ? EyeOff : Eye, label: showHeader ? 'إخفاء الهيدر' : 'إظهار الهيدر', action: onToggleHeader, show: !!onToggleHeader },
         { icon: showProgress ? EyeOff : Eye, label: showProgress ? 'إخفاء شريط التقدم' : 'إظهار شريط التقدم', action: onToggleProgress, show: !!onToggleProgress },
+      ]
+    },
+    { 
+      icon: Database, 
+      label: 'إدارة البيانات', 
+      action: onClearAllData, 
+      show: !!onClearAllData,
+      submenu: [
+        { icon: AlertTriangle, label: 'مسح جميع البيانات', action: onClearAllData, show: !!onClearAllData, danger: true },
+        { icon: FileUp, label: 'تصدير البيانات', action: onExportDatabase, show: !!onExportDatabase },
+        { icon: FileDown, label: 'استيراد البيانات', action: onImportDatabase, show: !!onImportDatabase },
       ]
     },
   ];
