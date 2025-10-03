@@ -12,6 +12,8 @@ import {
   FileText,
   CheckSquare,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Todo, ContextMenuPosition, Workspace, SavedTask } from "@/types/todo";
 import TodoItem from "./TodoItem";
@@ -86,6 +88,14 @@ const TodoList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  const saveCurrentWorkspace = useCallback((workspaceId: string, todos: Todo[]) => {
+    setWorkspaces(workspaces.map(ws => 
+      ws.id === workspaceId 
+        ? { ...ws, todos: [...todos], updatedAt: Date.now() }
+        : ws
+    ));
+  }, [workspaces]);
+
   // Load from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("todos");
@@ -124,7 +134,7 @@ const TodoList = () => {
         saveCurrentWorkspace(currentWorkspace, todos);
       }
     }
-  }, [todos, currentWorkspace]);
+  }, [todos, currentWorkspace, saveCurrentWorkspace]);
 
   useEffect(() => {
     localStorage.setItem("workspaces", JSON.stringify(workspaces));
@@ -244,7 +254,7 @@ const TodoList = () => {
     toast.success("تم لصق المهمة");
   };
 
-  const copyAllTasks = () => {
+  const copyAllTasks = useCallback(() => {
     const text = todos
       .filter((todo) => !todo.parentId && !todo.completed)
       .map((todo) => {
@@ -267,7 +277,7 @@ const TodoList = () => {
 
     navigator.clipboard.writeText(text);
     toast.success("تم نسخ المهام غير المكتملة مع الروابط");
-  };
+  }, [todos]);
 
   const copySelectedTasks = () => {
     if (selectedTodos.length === 0) {
@@ -437,14 +447,6 @@ const TodoList = () => {
       setCurrentWorkspace(null);
       toast.info("تم التبديل إلى مساحة العمل الافتراضية");
     }
-  };
-
-  const saveCurrentWorkspace = (workspaceId: string, todos: Todo[]) => {
-    setWorkspaces(workspaces.map(ws => 
-      ws.id === workspaceId 
-        ? { ...ws, todos: [...todos], updatedAt: Date.now() }
-        : ws
-    ));
   };
 
   const loadWorkspace = async () => {
@@ -710,12 +712,12 @@ const TodoList = () => {
       localStorage.removeItem('settings');
       
       // إعادة تعيين الإعدادات
-      setGlobalPromptMode(false);
+      setGlobalPromptMode("full-code");
       setGlobalFontSize(16);
       setGlobalLineHeight(1.5);
       setShowHeader(true);
       setShowToolbar(true);
-      setShowProgress(true);
+      setIsProgressCollapsed(false);
       
       toast.success('تم مسح جميع البيانات بنجاح', {
         description: 'تم إعادة تعيين التطبيق إلى حالته الافتراضية'
@@ -810,6 +812,30 @@ const TodoList = () => {
     );
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(visibleMainTodos.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTodos = visibleMainTodos.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [hideCompleted, showSelectedOnly, selectedTodos.length]);
+
+  // Pagination controls
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
   const stats = {
     total: todos.length,
     completed: todos.filter((t) => t.completed).length,
@@ -889,7 +915,7 @@ const TodoList = () => {
             <div className="flex gap-2 p-2 bg-secondary/20 rounded-lg">
               <Select
                 value={globalPromptMode}
-                onValueChange={(v: any) => setGlobalPromptMode(v)}
+                onValueChange={(v: "full-code" | "code-changes" | "notes") => setGlobalPromptMode(v)}
               >
                 <SelectTrigger className="w-40">
                   <SelectValue />
@@ -1121,7 +1147,11 @@ const TodoList = () => {
                     onDelete={deleteSavedTask}
                     onUse={(text) => {
                       setNewTaskText(text);
-                      useSavedTask(text);
+                      setSavedTasks(
+                        savedTasks.map((t) =>
+                          t.text === text ? { ...t, usageCount: t.usageCount + 1 } : t
+                        )
+                      );
                       setShowStatistics(false);
                     }}
                   />
@@ -1153,7 +1183,7 @@ const TodoList = () => {
                   </label>
                   <Select
                     value={workspacePromptMode}
-                    onValueChange={(v: any) => setWorkspacePromptMode(v)}
+                    onValueChange={(v: "full-code" | "code-changes") => setWorkspacePromptMode(v)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -1274,7 +1304,7 @@ const TodoList = () => {
                   ref={provided.innerRef}
                   className="space-y-3"
                 >
-                  {visibleMainTodos.map((todo, index) => {
+                  {paginatedTodos.map((todo, index) => {
                     const subTodos = todos
                       .filter((t) => t.parentId === todo.id)
                       .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -1396,6 +1426,76 @@ const TodoList = () => {
             </Droppable>
           </div>
         </DragDropContext>
+
+        {/* Pagination Controls */}
+        {visibleMainTodos.length > itemsPerPage && (
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-card rounded-lg border">
+            {/* Page Info */}
+            <div className="text-sm text-muted-foreground">
+              عرض {startIndex + 1} إلى {Math.min(endIndex, visibleMainTodos.length)} من {visibleMainTodos.length} مهمة
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-2">
+              {/* Previous Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                السابق
+              </Button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => goToPage(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Next Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="gap-2"
+              >
+                التالي
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Total Pages Info */}
+            <div className="text-sm text-muted-foreground">
+              صفحة {currentPage} من {totalPages}
+            </div>
+          </div>
+        )}
 
         {todos.length === 0 && (
           <div className="text-center py-16 animate-fade-in">
