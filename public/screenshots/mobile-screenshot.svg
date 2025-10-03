@@ -1,0 +1,100 @@
+<svg width="375" height="667" viewBox="0 0 375 667" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phone Frame -->
+  <rect x="0" y="0" width="375" height="667" rx="25" fill="#1f2937"/>
+  <rect x="8" y="8" width="359" height="651" rx="17" fill="url(#bgGradient)"/>
+  
+  <!-- Status Bar -->
+  <rect x="8" y="8" width="359" height="44" rx="17" fill="transparent"/>
+  <text x="30" y="35" font-family="system-ui" font-size="14" font-weight="600" fill="white">
+    9:41
+  </text>
+  <text x="320" y="35" font-family="system-ui" font-size="12" fill="white">
+    100%
+  </text>
+  
+  <!-- Header -->
+  <rect x="8" y="60" width="359" height="60" rx="17" fill="white" opacity="0.95"/>
+  <text x="30" y="90" font-family="Cairo, sans-serif" font-size="20" font-weight="700" fill="#1f2937">
+    المهام الذكية
+  </text>
+  
+  <!-- PWA Install Button -->
+  <rect x="280" y="70" width="70" height="30" rx="6" fill="#8b5cf6"/>
+  <text x="315" y="88" font-family="Tajawal, sans-serif" font-size="10" font-weight="500" fill="white" text-anchor="middle">
+    تثبيت
+  </text>
+  
+  <!-- Main Content -->
+  <rect x="8" y="130" width="359" height="500" rx="17" fill="white" opacity="0.9"/>
+  
+  <!-- Task Items -->
+  <g transform="translate(20, 150)">
+    <!-- Task 1 -->
+    <rect x="0" y="0" width="335" height="50" rx="8" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+    <circle cx="20" cy="25" r="10" fill="white" stroke="#10b981" stroke-width="2"/>
+    <path d="M16 25L19 28L24 23" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="40" y="20" font-family="Tajawal, sans-serif" font-size="14" font-weight="500" fill="#1f2937">
+      تطوير واجهة المستخدم
+    </text>
+    <text x="40" y="35" font-family="Tajawal, sans-serif" font-size="10" fill="#6b7280">
+      مكتملة • 2 ساعة مضت
+    </text>
+    
+    <!-- Task 2 -->
+    <rect x="0" y="60" width="335" height="50" rx="8" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+    <circle cx="20" cy="85" r="10" fill="white" stroke="#d1d5db" stroke-width="2"/>
+    <text x="40" y="80" font-family="Tajawal, sans-serif" font-size="14" font-weight="500" fill="#1f2937">
+      إضافة ميزة PWA
+    </text>
+    <text x="40" y="95" font-family="Tajawal, sans-serif" font-size="10" fill="#6b7280">
+      قيد التنفيذ • 30 دقيقة مضت
+    </text>
+    
+    <!-- Task 3 -->
+    <rect x="0" y="120" width="335" height="50" rx="8" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+    <circle cx="20" cy="145" r="10" fill="white" stroke="#d1d5db" stroke-width="2"/>
+    <text x="40" y="140" font-family="Tajawal, sans-serif" font-size="14" font-weight="500" fill="#1f2937">
+      كتابة الاختبارات
+    </text>
+    <text x="40" y="155" font-family="Tajawal, sans-serif" font-size="10" fill="#6b7280">
+      معلقة • 1 ساعة مضت
+    </text>
+    
+    <!-- Add Task Button -->
+    <rect x="0" y="180" width="335" height="40" rx="8" fill="#8b5cf6" opacity="0.1" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="167.5" y="205" font-family="Tajawal, sans-serif" font-size="12" font-weight="500" fill="#8b5cf6" text-anchor="middle">
+      + إضافة مهمة جديدة
+    </text>
+  </g>
+  
+  <!-- Bottom Navigation -->
+  <rect x="8" y="600" width="359" height="59" rx="17" fill="white" opacity="0.95"/>
+  <rect x="8" y="600" width="359" height="1" fill="#e5e7eb"/>
+  
+  <!-- Nav Items -->
+  <g transform="translate(30, 615)">
+    <circle cx="0" cy="0" r="20" fill="#8b5cf6" opacity="0.1"/>
+    <text x="0" y="5" font-family="Tajawal, sans-serif" font-size="10" font-weight="500" fill="#8b5cf6" text-anchor="middle">
+      المهام
+    </text>
+    
+    <circle cx="80" cy="0" r="20" fill="#6b7280" opacity="0.1"/>
+    <text x="80" y="5" font-family="Tajawal, sans-serif" font-size="10" font-weight="500" fill="#6b7280" text-anchor="middle">
+      الإحصائيات
+    </text>
+    
+    <circle cx="160" cy="0" r="20" fill="#6b7280" opacity="0.1"/>
+    <text x="160" y="5" font-family="Tajawal, sans-serif" font-size="10" font-weight="500" fill="#6b7280" text-anchor="middle">
+      الإعدادات
+    </text>
+  </g>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
+
