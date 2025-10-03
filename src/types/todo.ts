@@ -33,3 +33,19 @@ export interface SavedTask {
   text: string;
   usageCount: number;
 }
+
+export interface ArchivedTask {
+  id: string;
+  mainTask: Todo;
+  subTasks: Todo[];
+  archivedAt: number;
+  archivedBy: string; // يمكن أن يكون اسم المستخدم أو معرف
+  reason?: string; // سبب الأرشفة
+}
+
+export interface ArchivePage {
+  tasks: ArchivedTask[];
+  currentPage: number;
+  totalPages: number;
+  totalTasks: number;
+}
