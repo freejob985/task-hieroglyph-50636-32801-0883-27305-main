@@ -193,7 +193,7 @@ const TodoItem = ({
         </div>
       )}
       
-      <div className={`bg-card rounded-2xl border-2 border-border p-6 transition-smooth hover:shadow-xl hover:border-primary/50 ${
+      <div className={`bg-card rounded-2xl border-2 border-border p-8 transition-smooth hover:shadow-xl hover:border-primary/50 ${
         todo.completed ? 'opacity-60 bg-success/5 border-success/20' : ''
       } ${isDragging ? 'shadow-2xl scale-105' : ''} ${isSelected ? 'ring-2 ring-primary border-primary' : ''} ${
         isSubTask ? 'border-l-4 border-l-primary/30 bg-gradient-to-r from-primary/5 to-transparent' : ''
@@ -370,7 +370,7 @@ const TodoItem = ({
                     </div>
                   )}
                   <p className={`text-foreground leading-relaxed whitespace-pre-wrap transition-all duration-300 ${
-                    isSubTask ? 'text-base' : 'text-lg'
+                    isSubTask ? 'text-lg' : 'text-xl'
                   }`} style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
                     {displayText}
                   </p>

@@ -1315,12 +1315,14 @@ const TodoList = () => {
           onToggleToolbar={() => setShowToolbar(!showToolbar)}
           onToggleHeader={() => setShowHeader(!showHeader)}
           onToggleProgress={() => setIsProgressCollapsed(!isProgressCollapsed)}
+          onToggleSelectedOnly={() => setShowSelectedOnly(!showSelectedOnly)}
           onExportDatabase={exportDatabase}
           onImportDatabase={importDatabase}
           showToolbar={showToolbar}
           showHeader={showHeader}
           showProgress={!isProgressCollapsed}
           hasSelectedTasks={selectedTodos.length > 0}
+          showSelectedOnly={showSelectedOnly}
         />
       )}
     </div>
