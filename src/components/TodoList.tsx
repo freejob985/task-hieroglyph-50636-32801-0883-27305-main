@@ -64,7 +64,14 @@ const TodoList = () => {
   const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null);
   const [savedTasks, setSavedTasks] = useState<SavedTask[]>([]);
   const [newTaskText, setNewTaskText] = useState("");
-  const [hideCompleted, setHideCompleted] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(() => {
+    const saved = localStorage.getItem("hideCompleted");
+    return saved ? saved === "true" : false;
+  });
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem("soundEnabled");
+    return saved ? saved === "true" : true;
+  });
   const [showStatistics, setShowStatistics] = useState(false);
   const [showWorkspacePrompt, setShowWorkspacePrompt] = useState(false);
   const [workspacePromptMode, setWorkspacePromptMode] = useState<
@@ -78,14 +85,32 @@ const TodoList = () => {
   const [showTextOnly, setShowTextOnly] = useState(false);
   const [globalPromptMode, setGlobalPromptMode] = useState<
     "full-code" | "code-changes" | "notes"
-  >("full-code");
-  const [globalFontSize, setGlobalFontSize] = useState(14);
-  const [globalLineHeight, setGlobalLineHeight] = useState(1.8);
-  const [showHeader, setShowHeader] = useState(true);
-  const [showToolbar, setShowToolbar] = useState(true);
+  >(() => {
+    const saved = localStorage.getItem("globalPromptMode");
+    return (saved as "full-code" | "code-changes" | "notes") || "full-code";
+  });
+  const [globalFontSize, setGlobalFontSize] = useState(() => {
+    const saved = localStorage.getItem("globalFontSize");
+    return saved ? Number(saved) : 14;
+  });
+  const [globalLineHeight, setGlobalLineHeight] = useState(() => {
+    const saved = localStorage.getItem("globalLineHeight");
+    return saved ? Number(saved) : 1.8;
+  });
+  const [showHeader, setShowHeader] = useState(() => {
+    const saved = localStorage.getItem("showHeader");
+    return saved ? saved === "true" : true;
+  });
+  const [showToolbar, setShowToolbar] = useState(() => {
+    const saved = localStorage.getItem("showToolbar");
+    return saved ? saved === "true" : true;
+  });
   const [selectedTodos, setSelectedTodos] = useState<string[]>([]);
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
-  const [isProgressCollapsed, setIsProgressCollapsed] = useState(false);
+  const [isProgressCollapsed, setIsProgressCollapsed] = useState(() => {
+    const saved = localStorage.getItem("isProgressCollapsed");
+    return saved ? saved === "true" : false;
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [archivedTasks, setArchivedTasks] = useState<ArchivedTask[]>([]);
@@ -105,28 +130,12 @@ const TodoList = () => {
     const savedCurrentWorkspace = localStorage.getItem("currentWorkspace");
     const savedTasksData = localStorage.getItem("savedTasks");
     const savedArchivedTasks = localStorage.getItem("archivedTasks");
-    const savedGlobalPromptMode = localStorage.getItem("globalPromptMode");
-    const savedGlobalFontSize = localStorage.getItem("globalFontSize");
-    const savedGlobalLineHeight = localStorage.getItem("globalLineHeight");
-    const savedShowHeader = localStorage.getItem("showHeader");
-    const savedShowToolbar = localStorage.getItem("showToolbar");
-    const savedProgressCollapsed = localStorage.getItem("isProgressCollapsed");
 
     if (saved) setTodos(JSON.parse(saved));
     if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
     if (savedCurrentWorkspace) setCurrentWorkspace(savedCurrentWorkspace);
     if (savedTasksData) setSavedTasks(JSON.parse(savedTasksData));
     if (savedArchivedTasks) setArchivedTasks(JSON.parse(savedArchivedTasks));
-    if (savedGlobalPromptMode)
-      setGlobalPromptMode(
-        savedGlobalPromptMode as "full-code" | "code-changes" | "notes"
-      );
-    if (savedGlobalFontSize) setGlobalFontSize(Number(savedGlobalFontSize));
-    if (savedGlobalLineHeight)
-      setGlobalLineHeight(Number(savedGlobalLineHeight));
-    if (savedShowHeader !== null) setShowHeader(savedShowHeader === "true");
-    if (savedShowToolbar !== null) setShowToolbar(savedShowToolbar === "true");
-    if (savedProgressCollapsed !== null) setIsProgressCollapsed(savedProgressCollapsed === "true");
   }, []);
 
   // Auto-save
@@ -180,6 +189,14 @@ const TodoList = () => {
     localStorage.setItem("isProgressCollapsed", isProgressCollapsed.toString());
   }, [isProgressCollapsed]);
 
+  useEffect(() => {
+    localStorage.setItem("hideCompleted", hideCompleted.toString());
+  }, [hideCompleted]);
+
+  useEffect(() => {
+    localStorage.setItem("soundEnabled", soundEnabled.toString());
+  }, [soundEnabled]);
+
   const addTodo = useCallback((text: string, parentId: string | null = null) => {
     if (!text.trim()) return;
 
@@ -209,12 +226,44 @@ const TodoList = () => {
     toast.success("تم تحديث المهمة");
   };
 
+  const playCompletionSound = () => {
+    if (soundEnabled) {
+      // Create a simple completion sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Create a pleasant completion sound (ascending notes)
+      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    }
+  };
+
   const toggleTodo = (id: string) => {
+    const todo = todos.find(t => t.id === id);
+    const wasCompleted = todo?.completed;
+    const willBeCompleted = !wasCompleted;
+    
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     );
+
+    // Play sound when completing a task (not when uncompleting)
+    if (todo && !wasCompleted && willBeCompleted) {
+      playCompletionSound();
+    }
   };
 
   const deleteTodo = async (id: string) => {
@@ -394,11 +443,34 @@ const TodoList = () => {
       }
     };
 
+    const handleTextSelection = () => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim()) {
+        const selectedText = selection.toString().trim();
+        if (selectedText.length > 0) {
+          navigator.clipboard.writeText(selectedText).then(() => {
+            toast.success(`تم نسخ النص: "${selectedText.substring(0, 50)}${selectedText.length > 50 ? '...' : ''}"`);
+          }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = selectedText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            toast.success(`تم نسخ النص: "${selectedText.substring(0, 50)}${selectedText.length > 50 ? '...' : ''}"`);
+          });
+        }
+      }
+    };
+
     window.addEventListener("keydown", handleKeyboard);
     window.addEventListener("dblclick", handleDoubleClick);
+    window.addEventListener("mouseup", handleTextSelection);
     return () => {
       window.removeEventListener("keydown", handleKeyboard);
       window.removeEventListener("dblclick", handleDoubleClick);
+      window.removeEventListener("mouseup", handleTextSelection);
     };
   }, [addTodo, contextMenu, copyAllTasks, todos]);
 
@@ -612,6 +684,8 @@ const TodoList = () => {
         globalLineHeight,
         showHeader,
         showToolbar,
+        hideCompleted,
+        soundEnabled,
       },
       exportDate: new Date().toISOString(),
     };
@@ -656,6 +730,10 @@ const TodoList = () => {
             setShowHeader(data.settings.showHeader);
           if (data.settings.showToolbar !== undefined)
             setShowToolbar(data.settings.showToolbar);
+          if (data.settings.hideCompleted !== undefined)
+            setHideCompleted(data.settings.hideCompleted);
+          if (data.settings.soundEnabled !== undefined)
+            setSoundEnabled(data.settings.soundEnabled);
         }
 
         toast.success("تم استيراد قاعدة البيانات بنجاح");
@@ -788,6 +866,8 @@ const TodoList = () => {
       setShowHeader(true);
       setShowToolbar(true);
       setIsProgressCollapsed(false);
+      setHideCompleted(false);
+      setSoundEnabled(true);
       
       toast.success('تم مسح جميع البيانات بنجاح', {
         description: 'تم إعادة تعيين التطبيق إلى حالته الافتراضية'
@@ -948,10 +1028,16 @@ const TodoList = () => {
                 </>
               )}
             </div>
-            <h1 className="text-5xl font-bold mb-3 gradient-primary bg-clip-text text-transparent animate-fade-in">
+            <h1 
+              className="font-bold mb-3 gradient-primary bg-clip-text text-transparent animate-fade-in"
+              style={{ fontSize: `${globalFontSize * 2.5}px` }}
+            >
               قائمة المهام الذكية
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p 
+              className="text-muted-foreground"
+              style={{ fontSize: `${globalFontSize * 1.2}px` }}
+            >
               نظم مهامك بكفاءة وسهولة
             </p>
           </div>
@@ -987,7 +1073,7 @@ const TodoList = () => {
 
         {/* Toolbar */}
         {showToolbar && (
-          <div className="mb-6 flex flex-wrap gap-2 justify-center">
+          <div className="mb-6 flex flex-wrap gap-2 justify-center" style={{ fontSize: `${globalFontSize}px` }}>
             {/* Global Settings */}
             <div className="flex gap-2 p-2 bg-secondary/20 rounded-lg">
               <Select
@@ -1068,6 +1154,19 @@ const TodoList = () => {
                 <EyeOff className="w-4 h-4" />
               )}
               {hideCompleted ? "إظهار المكتملة" : "إخفاء المكتملة"}
+            </Button>
+
+            <Button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              variant={soundEnabled ? "default" : "outline"}
+              className="gap-2 hover:shadow-md transition-smooth"
+            >
+              {soundEnabled ? (
+                <span className="text-lg">♪</span>
+              ) : (
+                <span className="text-lg">♫</span>
+              )}
+              {soundEnabled ? "إيقاف الصوت" : "تشغيل الصوت"}
             </Button>
 
             <Button
@@ -1203,6 +1302,23 @@ const TodoList = () => {
                           <Eye className="w-4 h-4" />
                         ) : (
                           <EyeOff className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">
+                        تشغيل صوت إكمال المهام
+                      </label>
+                      <Button
+                        variant={soundEnabled ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                      >
+                        {soundEnabled ? (
+                          <span className="text-lg">♪</span>
+                        ) : (
+                          <span className="text-lg">♫</span>
                         )}
                       </Button>
                     </div>
@@ -1588,8 +1704,8 @@ const TodoList = () => {
               <div className="w-20 h-20 mx-auto mb-4 gradient-primary rounded-full flex items-center justify-center">
                 <Plus className="w-10 h-10 text-white" />
               </div>
-              <p className="text-xl font-bold mb-2">لا توجد مهام حالياً</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-bold mb-2" style={{ fontSize: `${globalFontSize * 1.5}px` }}>لا توجد مهام حالياً</p>
+              <p className="text-muted-foreground" style={{ fontSize: `${globalFontSize * 0.9}px` }}>
                 انقر بزر الماوس الأيمن لإضافة مهمة جديدة
               </p>
             </div>
