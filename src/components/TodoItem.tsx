@@ -180,6 +180,55 @@ const TodoItem = ({
     }
   };
 
+  // دالة لحذف علامات المارك داون
+  const removeMarkdownSyntax = (text: string): string => {
+    return text
+      // حذف العناوين
+      .replace(/^#{1,6}\s+/gm, '')
+      // حذف النص المائل والغامق
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      // حذف الروابط
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // حذف الكود المضمن
+      .replace(/`([^`]+)`/g, '$1')
+      // حذف الكود المحدد
+      .replace(/```[\s\S]*?```/g, '')
+      // حذف القوائم
+      .replace(/^[\s]*[-*+]\s+/gm, '• ')
+      .replace(/^[\s]*\d+\.\s+/gm, '')
+      // حذف الاقتباسات
+      .replace(/^>\s*/gm, '')
+      // حذف الخطوط الأفقية
+      .replace(/^[-*_]{3,}$/gm, '')
+      // تنظيف المسافات الزائدة
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+  };
+
+  const handleCopyTaskWithTitle = () => {
+    let copyText = '';
+    
+    // إضافة العنوان إذا كان موجوداً
+    if (todo.title) {
+      copyText += `العنوان: ${todo.title}\n\n`;
+    }
+    
+    // إضافة النص مع حذف علامات المارك داون
+    const cleanText = removeMarkdownSyntax(todo.text);
+    copyText += `المهمة: ${cleanText}`;
+    
+    // إضافة الرابط إذا كان موجوداً
+    if (todo.url) {
+      copyText += `\n\nالرابط: ${todo.url}`;
+    }
+    
+    navigator.clipboard.writeText(copyText);
+    toast.success('تم نسخ المهمة مع العنوان والرابط');
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showSuggestions && filteredSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -327,8 +376,18 @@ const TodoItem = ({
                       variant="outline"
                       size="sm"
                       onClick={handleCopyText}
+                      title="نسخ النص فقط"
                     >
                       <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyTaskWithTitle}
+                      title="نسخ المهمة مع العنوان والرابط"
+                    >
+                      <CopyCheck className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -455,9 +514,23 @@ const TodoItem = ({
                   {/* Title Display */}
                   {todo.title && (
                     <div className="mb-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="flex items-center gap-2 mb-1">
-                        <User className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-medium text-primary">العنوان:</span>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium text-primary">العنوان:</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyTaskWithTitle();
+                          }}
+                          className="h-6 w-6 p-0 hover:bg-primary/10"
+                          title="نسخ المهمة كاملة"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
                       <h3 className="text-lg font-semibold text-foreground" style={{ fontSize: `${globalFontSize * 1.1}px` }}>
                         {todo.title}
@@ -465,11 +538,27 @@ const TodoItem = ({
                     </div>
                   )}
                   
-                  <p className={`text-foreground leading-relaxed whitespace-pre-wrap transition-all duration-300 ${
-                    isSubTask ? 'text-lg' : 'text-xl'
-                  }`} style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
-                    {displayText}
-                  </p>
+                  <div className="relative group/text">
+                    <p className={`text-foreground leading-relaxed whitespace-pre-wrap transition-all duration-300 ${
+                      isSubTask ? 'text-lg' : 'text-xl'
+                    }`} style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>
+                      {displayText}
+                    </p>
+                    {!todo.title && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyTaskWithTitle();
+                        }}
+                        className="absolute top-0 left-0 opacity-0 group-hover/text:opacity-100 transition-opacity h-6 w-6 p-0 hover:bg-primary/10"
+                        title="نسخ المهمة كاملة"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                   
                   {/* URL Display */}
                   {todo.url && (
@@ -479,18 +568,32 @@ const TodoItem = ({
                           <Link className="w-4 h-4 text-primary" />
                           <span className="text-sm font-medium text-muted-foreground">رابط المشكلة:</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyUrl();
-                          }}
-                          className="h-6 w-6 p-0 hover:bg-primary/10"
-                          title="نسخ الرابط"
-                        >
-                          <CopyCheck className="w-3 h-3" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyUrl();
+                            }}
+                            className="h-6 w-6 p-0 hover:bg-primary/10"
+                            title="نسخ الرابط"
+                          >
+                            <CopyCheck className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyTaskWithTitle();
+                            }}
+                            className="h-6 w-6 p-0 hover:bg-primary/10"
+                            title="نسخ المهمة كاملة"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                       <a
                         href={todo.url}

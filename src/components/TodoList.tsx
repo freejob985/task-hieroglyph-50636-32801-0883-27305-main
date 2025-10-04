@@ -381,23 +381,70 @@ const TodoList = () => {
         const subTasks = todos.filter(
           (t) => t.parentId === todo.id && !t.completed
         );
-        let result = `○ ${todo.text}`;
-        if (todo.url) {
-          result += `\n  🔗 ${todo.url}`;
+        
+        let result = '';
+        
+        // إضافة العنوان إذا كان موجوداً
+        if (todo.title) {
+          result += `العنوان: ${todo.title}\n\n`;
         }
-        subTasks.forEach((sub) => {
-          result += `\n  ○ ${sub.text}`;
-          if (sub.url) {
-            result += `\n    🔗 ${sub.url}`;
-          }
-        });
+        
+        // إضافة النص مع حذف علامات المارك داون
+        const cleanText = removeMarkdownSyntax(todo.text);
+        result += `المهمة: ${cleanText}`;
+        
+        // إضافة الرابط إذا كان موجوداً
+        if (todo.url) {
+          result += `\n\nالرابط: ${todo.url}`;
+        }
+        
+        // إضافة المهام الفرعية
+        if (subTasks.length > 0) {
+          result += '\n\nالمهام الفرعية:';
+          subTasks.forEach((sub) => {
+            const cleanSubText = removeMarkdownSyntax(sub.text);
+            result += `\n• ${cleanSubText}`;
+            if (sub.url) {
+              result += `\n  🔗 ${sub.url}`;
+            }
+          });
+        }
+        
         return result;
       })
-      .join("\n");
+      .join("\n\n" + "=".repeat(50) + "\n\n");
 
     navigator.clipboard.writeText(text);
-    toast.success("تم نسخ المهام غير المكتملة مع الروابط");
+    toast.success("تم نسخ المهام غير المكتملة مع العناوين والروابط");
   }, [todos]);
+
+  // دالة لحذف علامات المارك داون
+  const removeMarkdownSyntax = (text: string): string => {
+    return text
+      // حذف العناوين
+      .replace(/^#{1,6}\s+/gm, '')
+      // حذف النص المائل والغامق
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      // حذف الروابط
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // حذف الكود المضمن
+      .replace(/`([^`]+)`/g, '$1')
+      // حذف الكود المحدد
+      .replace(/```[\s\S]*?```/g, '')
+      // حذف القوائم
+      .replace(/^[\s]*[-*+]\s+/gm, '• ')
+      .replace(/^[\s]*\d+\.\s+/gm, '')
+      // حذف الاقتباسات
+      .replace(/^>\s*/gm, '')
+      // حذف الخطوط الأفقية
+      .replace(/^[-*_]{3,}$/gm, '')
+      // تنظيف المسافات الزائدة
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+  };
 
   const copySelectedTasks = () => {
     if (selectedTodos.length === 0) {
@@ -411,22 +458,41 @@ const TodoList = () => {
         const subTasks = todos.filter(
           (t) => t.parentId === todo.id && selectedTodos.includes(t.id)
         );
-        let result = `○ ${todo.text}`;
-        if (todo.url) {
-          result += `\n  🔗 ${todo.url}`;
+        
+        let result = '';
+        
+        // إضافة العنوان إذا كان موجوداً
+        if (todo.title) {
+          result += `العنوان: ${todo.title}\n\n`;
         }
-        subTasks.forEach((sub) => {
-          result += `\n  ○ ${sub.text}`;
-          if (sub.url) {
-            result += `\n    🔗 ${sub.url}`;
-          }
-        });
+        
+        // إضافة النص مع حذف علامات المارك داون
+        const cleanText = removeMarkdownSyntax(todo.text);
+        result += `المهمة: ${cleanText}`;
+        
+        // إضافة الرابط إذا كان موجوداً
+        if (todo.url) {
+          result += `\n\nالرابط: ${todo.url}`;
+        }
+        
+        // إضافة المهام الفرعية
+        if (subTasks.length > 0) {
+          result += '\n\nالمهام الفرعية:';
+          subTasks.forEach((sub) => {
+            const cleanSubText = removeMarkdownSyntax(sub.text);
+            result += `\n• ${cleanSubText}`;
+            if (sub.url) {
+              result += `\n  🔗 ${sub.url}`;
+            }
+          });
+        }
+        
         return result;
       })
-      .join("\n");
+      .join("\n\n" + "=".repeat(50) + "\n\n");
 
     navigator.clipboard.writeText(text);
-    toast.success(`تم نسخ ${selectedTodos.length} مهمة مع الروابط`);
+    toast.success(`تم نسخ ${selectedTodos.length} مهمة مع العناوين والروابط`);
     setSelectedTodos([]);
   };
 
