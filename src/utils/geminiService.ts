@@ -156,3 +156,50 @@ export async function generateWorkspacePrompt(
     throw error;
   }
 }
+
+export async function generateTaskTitle(taskText: string, url?: string): Promise<string> {
+  const apiKey = GEMINI_API_KEYS[currentKeyIndex];
+  const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  const contextInfo = url ? `\nرابط المشكلة: ${url}` : '';
+
+  try {
+    const response = await fetch(urlEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `أنشئ عنواناً مختصراً وواضحاً لهذه المهمة البرمجية. يجب أن يكون العنوان:
+- مختصراً (3-8 كلمات)
+- واضحاً ومفهوماً
+- يلخص جوهر المهمة
+- باللغة العربية
+- بدون رموز خاصة أو علامات ترقيم غير ضرورية
+
+المهمة: ${taskText}${contextInfo}
+
+العنوان:`,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      currentKeyIndex = (currentKeyIndex + 1) % GEMINI_API_KEYS.length;
+      throw new Error('Failed to generate title');
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text.trim();
+  } catch (error) {
+    console.error('Error generating title:', error);
+    throw error;
+  }
+}

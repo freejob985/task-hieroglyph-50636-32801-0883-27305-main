@@ -11,6 +11,7 @@ export interface Todo {
   notes?: string;
   fontSize?: number;
   url?: string;
+  title?: string;
 }
 
 export interface Workspace {

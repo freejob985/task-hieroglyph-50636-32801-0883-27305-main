@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { SavedTask } from '@/types/todo';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { improveTextWithGemini, generatePrompt } from '@/utils/geminiService';
+import { improveTextWithGemini, generatePrompt, generateTaskTitle } from '@/utils/geminiService';
 import TechnologyInput from './TechnologyInput';
 import { toast } from 'sonner';
 import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
@@ -57,9 +57,11 @@ const TodoItem = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
   const [editUrl, setEditUrl] = useState(todo.url || '');
+  const [editTitle, setEditTitle] = useState(todo.title || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [isImproving, setIsImproving] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -108,11 +110,15 @@ const TodoItem = ({
   useEffect(() => {
     setEditText(todo.text);
     setEditUrl(todo.url || '');
-  }, [todo.text, todo.url]);
+    setEditTitle(todo.title || '');
+  }, [todo.text, todo.url, todo.title]);
 
   const handleSave = () => {
     if (editText.trim()) {
-      onUpdate(todo.id, editText.trim(), { url: editUrl.trim() || undefined });
+      onUpdate(todo.id, editText.trim(), { 
+        url: editUrl.trim() || undefined,
+        title: editTitle.trim() || undefined
+      });
       setIsEditing(false);
     }
   };
@@ -159,6 +165,21 @@ const TodoItem = ({
     }
   };
 
+  const handleGenerateTitle = async () => {
+    if (!editText.trim()) return;
+    
+    setIsGeneratingTitle(true);
+    try {
+      const title = await generateTaskTitle(editText, editUrl || undefined);
+      setEditTitle(title);
+      toast.success('تم إنشاء العنوان بنجاح');
+    } catch (error) {
+      toast.error('فشل إنشاء العنوان');
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showSuggestions && filteredSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -185,6 +206,7 @@ const TodoItem = ({
     } else if (e.key === 'Escape') {
       setEditText(todo.text);
       setEditUrl(todo.url || '');
+      setEditTitle(todo.title || '');
       setIsEditing(false);
       setShowSuggestions(false);
     }
@@ -209,14 +231,14 @@ const TodoItem = ({
         </div>
       )}
       
-      <div className={`bg-card rounded-2xl border-2 border-border p-8 transition-smooth hover:shadow-xl hover:border-primary/50 ${
+      <div className={`bg-card rounded-2xl border-2 border-border p-8 transition-all duration-300 hover:shadow-xl hover:border-primary/50 ${
         todo.completed ? 'opacity-60 bg-success/5 border-success/20' : ''
-      } ${isDragging ? 'shadow-2xl scale-105' : ''} ${isSelected ? 'ring-2 ring-primary border-primary' : ''} ${
+      } ${isDragging ? 'shadow-2xl scale-105 rotate-2 border-primary' : ''} ${isSelected ? 'ring-2 ring-primary border-primary' : ''} ${
         isSubTask ? 'border-l-4 border-l-primary/30 bg-gradient-to-r from-primary/5 to-transparent' : ''
       }`}>
         <div className="flex items-start gap-3">
-          <div {...dragHandleProps}>
-            <GripVertical className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-smooth cursor-grab active:cursor-grabbing" />
+          <div {...dragHandleProps} className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-primary/10 hover:border-primary/30 border border-transparent transition-all duration-200 group/drag">
+            <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab active:cursor-grabbing hover:text-primary transition-colors group-hover/drag:text-primary" />
           </div>
 
           {onToggleSelect && (
@@ -241,6 +263,33 @@ const TodoItem = ({
 
           {isEditing && !showTextOnly ? (
               <div className="flex-1 space-y-3">
+              {/* Title Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  عنوان المهمة (اختياري)
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="عنوان مختصر للمهمة..."
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateTitle}
+                    disabled={isGeneratingTitle || !editText.trim()}
+                    className="gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {isGeneratingTitle ? 'جاري الإنشاء...' : 'توليد تلقائي'}
+                  </Button>
+                </div>
+              </div>
+
               {/* URL Input */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -343,6 +392,7 @@ const TodoItem = ({
                   onClick={() => {
                     setEditText(todo.text);
                     setEditUrl(todo.url || '');
+                    setEditTitle(todo.title || '');
                     setIsEditing(false);
                   }}
                   variant="outline"
@@ -401,6 +451,20 @@ const TodoItem = ({
                       </span>
                     </div>
                   )}
+                  
+                  {/* Title Display */}
+                  {todo.title && (
+                    <div className="mb-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <User className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-primary">العنوان:</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-foreground" style={{ fontSize: `${globalFontSize * 1.1}px` }}>
+                        {todo.title}
+                      </h3>
+                    </div>
+                  )}
+                  
                   <p className={`text-foreground leading-relaxed whitespace-pre-wrap transition-all duration-300 ${
                     isSubTask ? 'text-lg' : 'text-xl'
                   }`} style={{ fontSize: `${globalFontSize}px`, lineHeight: globalLineHeight }}>

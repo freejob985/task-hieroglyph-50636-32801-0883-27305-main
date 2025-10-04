@@ -65,12 +65,22 @@ const TodoList = () => {
   const [savedTasks, setSavedTasks] = useState<SavedTask[]>([]);
   const [newTaskText, setNewTaskText] = useState("");
   const [hideCompleted, setHideCompleted] = useState(() => {
-    const saved = localStorage.getItem("hideCompleted");
-    return saved ? saved === "true" : false;
+    try {
+      const saved = localStorage.getItem("hideCompleted");
+      return saved ? JSON.parse(saved) : false;
+    } catch (error) {
+      console.warn("Error reading hideCompleted from localStorage:", error);
+      return false;
+    }
   });
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem("soundEnabled");
-    return saved ? saved === "true" : true;
+    try {
+      const saved = localStorage.getItem("soundEnabled");
+      return saved ? JSON.parse(saved) : true;
+    } catch (error) {
+      console.warn("Error reading soundEnabled from localStorage:", error);
+      return true;
+    }
   });
   const [showStatistics, setShowStatistics] = useState(false);
   const [showWorkspacePrompt, setShowWorkspacePrompt] = useState(false);
@@ -90,29 +100,54 @@ const TodoList = () => {
     return (saved as "full-code" | "code-changes" | "notes") || "full-code";
   });
   const [globalFontSize, setGlobalFontSize] = useState(() => {
-    const saved = localStorage.getItem("globalFontSize");
-    return saved ? Number(saved) : 14;
+    try {
+      const saved = localStorage.getItem("globalFontSize");
+      return saved ? JSON.parse(saved) : 14;
+    } catch (error) {
+      console.warn("Error reading globalFontSize from localStorage:", error);
+      return 14;
+    }
   });
   const [globalLineHeight, setGlobalLineHeight] = useState(() => {
-    const saved = localStorage.getItem("globalLineHeight");
-    return saved ? Number(saved) : 1.8;
+    try {
+      const saved = localStorage.getItem("globalLineHeight");
+      return saved ? JSON.parse(saved) : 1.8;
+    } catch (error) {
+      console.warn("Error reading globalLineHeight from localStorage:", error);
+      return 1.8;
+    }
   });
   const [showHeader, setShowHeader] = useState(() => {
-    const saved = localStorage.getItem("showHeader");
-    return saved ? saved === "true" : true;
+    try {
+      const saved = localStorage.getItem("showHeader");
+      return saved ? JSON.parse(saved) : true;
+    } catch (error) {
+      console.warn("Error reading showHeader from localStorage:", error);
+      return true;
+    }
   });
   const [showToolbar, setShowToolbar] = useState(() => {
-    const saved = localStorage.getItem("showToolbar");
-    return saved ? saved === "true" : true;
+    try {
+      const saved = localStorage.getItem("showToolbar");
+      return saved ? JSON.parse(saved) : true;
+    } catch (error) {
+      console.warn("Error reading showToolbar from localStorage:", error);
+      return true;
+    }
   });
   const [selectedTodos, setSelectedTodos] = useState<string[]>([]);
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
   const [isProgressCollapsed, setIsProgressCollapsed] = useState(() => {
-    const saved = localStorage.getItem("isProgressCollapsed");
-    return saved ? saved === "true" : false;
+    try {
+      const saved = localStorage.getItem("isProgressCollapsed");
+      return saved ? JSON.parse(saved) : false;
+    } catch (error) {
+      console.warn("Error reading isProgressCollapsed from localStorage:", error);
+      return false;
+    }
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(15);
   const [archivedTasks, setArchivedTasks] = useState<ArchivedTask[]>([]);
 
   const saveCurrentWorkspace = useCallback((workspaceId: string, todos: Todo[]) => {
@@ -170,31 +205,59 @@ const TodoList = () => {
   }, [globalPromptMode]);
 
   useEffect(() => {
-    localStorage.setItem("globalFontSize", globalFontSize.toString());
+    try {
+      localStorage.setItem("globalFontSize", JSON.stringify(globalFontSize));
+    } catch (error) {
+      console.warn("Error saving globalFontSize to localStorage:", error);
+    }
   }, [globalFontSize]);
 
   useEffect(() => {
-    localStorage.setItem("globalLineHeight", globalLineHeight.toString());
+    try {
+      localStorage.setItem("globalLineHeight", JSON.stringify(globalLineHeight));
+    } catch (error) {
+      console.warn("Error saving globalLineHeight to localStorage:", error);
+    }
   }, [globalLineHeight]);
 
   useEffect(() => {
-    localStorage.setItem("showHeader", showHeader.toString());
+    try {
+      localStorage.setItem("showHeader", JSON.stringify(showHeader));
+    } catch (error) {
+      console.warn("Error saving showHeader to localStorage:", error);
+    }
   }, [showHeader]);
 
   useEffect(() => {
-    localStorage.setItem("showToolbar", showToolbar.toString());
+    try {
+      localStorage.setItem("showToolbar", JSON.stringify(showToolbar));
+    } catch (error) {
+      console.warn("Error saving showToolbar to localStorage:", error);
+    }
   }, [showToolbar]);
 
   useEffect(() => {
-    localStorage.setItem("isProgressCollapsed", isProgressCollapsed.toString());
+    try {
+      localStorage.setItem("isProgressCollapsed", JSON.stringify(isProgressCollapsed));
+    } catch (error) {
+      console.warn("Error saving isProgressCollapsed to localStorage:", error);
+    }
   }, [isProgressCollapsed]);
 
   useEffect(() => {
-    localStorage.setItem("hideCompleted", hideCompleted.toString());
+    try {
+      localStorage.setItem("hideCompleted", JSON.stringify(hideCompleted));
+    } catch (error) {
+      console.warn("Error saving hideCompleted to localStorage:", error);
+    }
   }, [hideCompleted]);
 
   useEffect(() => {
-    localStorage.setItem("soundEnabled", soundEnabled.toString());
+    try {
+      localStorage.setItem("soundEnabled", JSON.stringify(soundEnabled));
+    } catch (error) {
+      console.warn("Error saving soundEnabled to localStorage:", error);
+    }
   }, [soundEnabled]);
 
   const addTodo = useCallback((text: string, parentId: string | null = null) => {
