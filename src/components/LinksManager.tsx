@@ -12,12 +12,83 @@ interface LinksManagerProps {
   isEditing?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  soundEnabled?: boolean;
 }
 
-const LinksManager = ({ links, onLinksChange, isEditing = false, isCollapsed = true, onToggleCollapse }: LinksManagerProps) => {
+const LinksManager = ({ links, onLinksChange, isEditing = false, isCollapsed = true, onToggleCollapse, soundEnabled = true }: LinksManagerProps) => {
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [newLink, setNewLink] = useState({ url: '', description: '' });
   const [editingLink, setEditingLink] = useState({ url: '', description: '' });
+
+  // دالة لإنشاء أصوات مختلفة للأحداث
+  const playSound = (type: 'copy-all' | 'copy-selected' | 'copy-single' | 'copy-link' | 'completion') => {
+    if (!soundEnabled) return;
+
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    const currentTime = audioContext.currentTime;
+    
+    switch (type) {
+      case 'copy-all':
+        // صوت نسخ جميع المهام - نغمة منخفضة متدرجة
+        oscillator.frequency.setValueAtTime(220, currentTime); // A3
+        oscillator.frequency.setValueAtTime(246.94, currentTime + 0.1); // B3
+        oscillator.frequency.setValueAtTime(261.63, currentTime + 0.2); // C4
+        oscillator.frequency.setValueAtTime(293.66, currentTime + 0.3); // D4
+        gainNode.gain.setValueAtTime(0.4, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.5);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.5);
+        break;
+        
+      case 'copy-selected':
+        // صوت نسخ المهام المحددة - نغمة متوسطة
+        oscillator.frequency.setValueAtTime(329.63, currentTime); // E4
+        oscillator.frequency.setValueAtTime(349.23, currentTime + 0.1); // F4
+        oscillator.frequency.setValueAtTime(392.00, currentTime + 0.2); // G4
+        gainNode.gain.setValueAtTime(0.35, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.4);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.4);
+        break;
+        
+      case 'copy-single':
+        // صوت نسخ مهمة واحدة - نغمة قصيرة
+        oscillator.frequency.setValueAtTime(440, currentTime); // A4
+        oscillator.frequency.setValueAtTime(523.25, currentTime + 0.05); // C5
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.2);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.2);
+        break;
+        
+      case 'copy-link':
+        // صوت نسخ رابط - نغمة خفيفة
+        oscillator.frequency.setValueAtTime(659.25, currentTime); // E5
+        oscillator.frequency.setValueAtTime(783.99, currentTime + 0.05); // G5
+        gainNode.gain.setValueAtTime(0.25, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.15);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.15);
+        break;
+        
+      case 'completion':
+        // صوت إكمال المهمة - النغمة الأصلية
+        oscillator.frequency.setValueAtTime(523.25, currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(783.99, currentTime + 0.2); // G5
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.3);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.3);
+        break;
+    }
+  };
 
   const addLink = () => {
     if (!newLink.url.trim() || !newLink.description.trim()) {
@@ -88,12 +159,14 @@ const LinksManager = ({ links, onLinksChange, isEditing = false, isCollapsed = t
 
   const copyLink = (link: TodoLink) => {
     navigator.clipboard.writeText(link.url);
+    playSound('copy-link');
     toast.success('تم نسخ الرابط');
   };
 
   const copyLinkWithDescription = (link: TodoLink) => {
     const text = `${link.description}: ${link.url}`;
     navigator.clipboard.writeText(text);
+    playSound('copy-link');
     toast.success('تم نسخ الرابط مع الوصف');
   };
 
@@ -108,6 +181,7 @@ const LinksManager = ({ links, onLinksChange, isEditing = false, isCollapsed = t
       .join('\n');
     
     navigator.clipboard.writeText(text);
+    playSound('copy-all');
     toast.success(`تم نسخ ${links.length} رابط`);
   };
 

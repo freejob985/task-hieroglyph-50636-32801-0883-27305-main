@@ -312,6 +312,76 @@ const TodoList = () => {
     }
   };
 
+  // دالة لإنشاء أصوات مختلفة للأحداث
+  const playSound = useCallback((type: 'copy-all' | 'copy-selected' | 'copy-single' | 'copy-link' | 'completion') => {
+    if (!soundEnabled) return;
+
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    const currentTime = audioContext.currentTime;
+    
+    switch (type) {
+      case 'copy-all':
+        // صوت نسخ جميع المهام - نغمة منخفضة متدرجة
+        oscillator.frequency.setValueAtTime(220, currentTime); // A3
+        oscillator.frequency.setValueAtTime(246.94, currentTime + 0.1); // B3
+        oscillator.frequency.setValueAtTime(261.63, currentTime + 0.2); // C4
+        oscillator.frequency.setValueAtTime(293.66, currentTime + 0.3); // D4
+        gainNode.gain.setValueAtTime(0.4, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.5);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.5);
+        break;
+        
+      case 'copy-selected':
+        // صوت نسخ المهام المحددة - نغمة متوسطة
+        oscillator.frequency.setValueAtTime(329.63, currentTime); // E4
+        oscillator.frequency.setValueAtTime(349.23, currentTime + 0.1); // F4
+        oscillator.frequency.setValueAtTime(392.00, currentTime + 0.2); // G4
+        gainNode.gain.setValueAtTime(0.35, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.4);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.4);
+        break;
+        
+      case 'copy-single':
+        // صوت نسخ مهمة واحدة - نغمة قصيرة
+        oscillator.frequency.setValueAtTime(440, currentTime); // A4
+        oscillator.frequency.setValueAtTime(523.25, currentTime + 0.05); // C5
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.2);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.2);
+        break;
+        
+      case 'copy-link':
+        // صوت نسخ رابط - نغمة خفيفة
+        oscillator.frequency.setValueAtTime(659.25, currentTime); // E5
+        oscillator.frequency.setValueAtTime(783.99, currentTime + 0.05); // G5
+        gainNode.gain.setValueAtTime(0.25, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.15);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.15);
+        break;
+        
+      case 'completion':
+        // صوت إكمال المهمة - النغمة الأصلية
+        oscillator.frequency.setValueAtTime(523.25, currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(783.99, currentTime + 0.2); // G5
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.3);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.3);
+        break;
+    }
+  }, [soundEnabled]);
+
   const toggleTodo = (id: string) => {
     const todo = todos.find(t => t.id === id);
     const wasCompleted = todo?.completed;
@@ -325,7 +395,7 @@ const TodoList = () => {
 
     // Play sound when completing a task (not when uncompleting)
     if (todo && !wasCompleted && willBeCompleted) {
-      playCompletionSound();
+      playSound('completion');
     }
   };
 
@@ -405,6 +475,14 @@ const TodoList = () => {
             result += `\n• ${link.description}: ${link.url}`;
           });
         }
+
+        // إضافة الملفات المرفقة إذا كانت موجودة
+        if (todo.attachments && todo.attachments.length > 0) {
+          result += '\n\nالملفات المرافقة:';
+          todo.attachments.forEach(attachment => {
+            result += `\n• ${attachment.url}`;
+          });
+        }
         
         // إضافة المهام الفرعية
         if (subTasks.length > 0) {
@@ -415,11 +493,16 @@ const TodoList = () => {
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
             }
-            if (sub.links && sub.links.length > 0) {
-              sub.links.forEach(link => {
-                result += `\n  🔗 ${link.description}: ${link.url}`;
-              });
-            }
+                   if (sub.links && sub.links.length > 0) {
+                     sub.links.forEach(link => {
+                       result += `\n  🔗 ${link.description}: ${link.url}`;
+                     });
+                   }
+                   if (sub.attachments && sub.attachments.length > 0) {
+                     sub.attachments.forEach(attachment => {
+                       result += `\n  📎 ${attachment.url}`;
+                     });
+                   }
           });
         }
         
@@ -428,8 +511,9 @@ const TodoList = () => {
       .join("\n\n" + "=".repeat(50) + "\n\n");
 
     navigator.clipboard.writeText(text);
+    playSound('copy-all');
     toast.success("تم نسخ المهام غير المكتملة مع العناوين والروابط");
-  }, [todos]);
+  }, [todos, playSound]);
 
   // دالة لحذف علامات المارك داون
   const removeMarkdownSyntax = (text: string): string => {
@@ -495,6 +579,14 @@ const TodoList = () => {
             result += `\n• ${link.description}: ${link.url}`;
           });
         }
+
+        // إضافة الملفات المرفقة إذا كانت موجودة
+        if (todo.attachments && todo.attachments.length > 0) {
+          result += '\n\nالملفات المرافقة:';
+          todo.attachments.forEach(attachment => {
+            result += `\n• ${attachment.url}`;
+          });
+        }
         
         // إضافة المهام الفرعية
         if (subTasks.length > 0) {
@@ -505,11 +597,16 @@ const TodoList = () => {
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
             }
-            if (sub.links && sub.links.length > 0) {
-              sub.links.forEach(link => {
-                result += `\n  🔗 ${link.description}: ${link.url}`;
-              });
-            }
+                   if (sub.links && sub.links.length > 0) {
+                     sub.links.forEach(link => {
+                       result += `\n  🔗 ${link.description}: ${link.url}`;
+                     });
+                   }
+                   if (sub.attachments && sub.attachments.length > 0) {
+                     sub.attachments.forEach(attachment => {
+                       result += `\n  📎 ${attachment.url}`;
+                     });
+                   }
           });
         }
         
@@ -518,6 +615,7 @@ const TodoList = () => {
       .join("\n\n" + "=".repeat(50) + "\n\n");
 
     navigator.clipboard.writeText(text);
+    playSound('copy-selected');
     toast.success(`تم نسخ ${selectedTodos.length} مهمة مع العناوين والروابط`);
     setSelectedTodos([]);
   };
@@ -1703,6 +1801,7 @@ const TodoList = () => {
                                 globalLineHeight={globalLineHeight}
                                 isSelected={selectedTodos.includes(todo.id)}
                                 onToggleSelect={toggleSelectTodo}
+                                soundEnabled={soundEnabled}
                               />
                             </div>
                           )}
@@ -1762,6 +1861,7 @@ const TodoList = () => {
                                             subTodo.id
                                           )}
                                           onToggleSelect={toggleSelectTodo}
+                                          soundEnabled={soundEnabled}
                                         />
                                       </div>
                                     )}

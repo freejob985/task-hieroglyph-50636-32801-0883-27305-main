@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck } from 'lucide-react';
-import { Todo, TodoLink } from '@/types/todo';
+import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck, Paperclip, Plus } from 'lucide-react';
+import { Todo, TodoLink, TodoAttachment } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ interface TodoItemProps {
   globalLineHeight?: number;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
+  soundEnabled?: boolean;
 }
 
 const TodoItem = ({
@@ -54,18 +55,21 @@ const TodoItem = ({
   globalLineHeight = 1.8,
   isSelected = false,
   onToggleSelect,
+  soundEnabled = true,
 }: TodoItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
   const [editUrl, setEditUrl] = useState(todo.url || '');
   const [editTitle, setEditTitle] = useState(todo.title || '');
   const [editLinks, setEditLinks] = useState<TodoLink[]>(todo.links || []);
+  const [editAttachments, setEditAttachments] = useState<string[]>(todo.attachments?.map(a => a.url) || []);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [isImproving, setIsImproving] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLinksCollapsed, setIsLinksCollapsed] = useState(true);
+  const [isAttachmentsCollapsed, setIsAttachmentsCollapsed] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isListening, startListening, stopListening } = useSpeechRecognition(
@@ -74,6 +78,76 @@ const TodoItem = ({
     },
     'ar-SA'
   );
+
+  // دالة لإنشاء أصوات مختلفة للأحداث
+  const playSound = (type: 'copy-all' | 'copy-selected' | 'copy-single' | 'copy-link' | 'completion') => {
+    if (!soundEnabled) return;
+
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    const currentTime = audioContext.currentTime;
+    
+    switch (type) {
+      case 'copy-all':
+        // صوت نسخ جميع المهام - نغمة منخفضة متدرجة
+        oscillator.frequency.setValueAtTime(220, currentTime); // A3
+        oscillator.frequency.setValueAtTime(246.94, currentTime + 0.1); // B3
+        oscillator.frequency.setValueAtTime(261.63, currentTime + 0.2); // C4
+        oscillator.frequency.setValueAtTime(293.66, currentTime + 0.3); // D4
+        gainNode.gain.setValueAtTime(0.4, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.5);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.5);
+        break;
+        
+      case 'copy-selected':
+        // صوت نسخ المهام المحددة - نغمة متوسطة
+        oscillator.frequency.setValueAtTime(329.63, currentTime); // E4
+        oscillator.frequency.setValueAtTime(349.23, currentTime + 0.1); // F4
+        oscillator.frequency.setValueAtTime(392.00, currentTime + 0.2); // G4
+        gainNode.gain.setValueAtTime(0.35, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.4);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.4);
+        break;
+        
+      case 'copy-single':
+        // صوت نسخ مهمة واحدة - نغمة قصيرة
+        oscillator.frequency.setValueAtTime(440, currentTime); // A4
+        oscillator.frequency.setValueAtTime(523.25, currentTime + 0.05); // C5
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.2);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.2);
+        break;
+        
+      case 'copy-link':
+        // صوت نسخ رابط - نغمة خفيفة
+        oscillator.frequency.setValueAtTime(659.25, currentTime); // E5
+        oscillator.frequency.setValueAtTime(783.99, currentTime + 0.05); // G5
+        gainNode.gain.setValueAtTime(0.25, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.15);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.15);
+        break;
+        
+      case 'completion':
+        // صوت إكمال المهمة - النغمة الأصلية
+        oscillator.frequency.setValueAtTime(523.25, currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(783.99, currentTime + 0.2); // G5
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.3);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.3);
+        break;
+    }
+  };
 
   // حساب عدد الأسطر في النص
   const calculateLineCount = (text: string) => {
@@ -115,14 +189,25 @@ const TodoItem = ({
     setEditUrl(todo.url || '');
     setEditTitle(todo.title || '');
     setEditLinks(todo.links || []);
-  }, [todo.text, todo.url, todo.title, todo.links]);
+    setEditAttachments(todo.attachments?.map(a => a.url) || []);
+  }, [todo.text, todo.url, todo.title, todo.links, todo.attachments]);
 
   const handleSave = () => {
     if (editText.trim()) {
+      // تحويل مصفوفة الملفات المرفقة إلى مصفوفة attachments
+      const attachments = editAttachments.length > 0 
+        ? editAttachments.filter(url => url.trim()).map(url => ({
+            id: Date.now().toString() + Math.random(),
+            url: url.trim(),
+            createdAt: Date.now()
+          }))
+        : undefined;
+
       onUpdate(todo.id, editText.trim(), { 
         url: editUrl.trim() || undefined,
         title: editTitle.trim() || undefined,
-        links: editLinks.length > 0 ? editLinks : undefined
+        links: editLinks.length > 0 ? editLinks : undefined,
+        attachments: attachments
       });
       setIsEditing(false);
     }
@@ -160,12 +245,14 @@ const TodoItem = ({
 
   const handleCopyText = () => {
     navigator.clipboard.writeText(editText);
+    playSound('copy-single');
     toast.success('تم نسخ النص');
   };
 
   const handleCopyUrl = () => {
     if (todo.url) {
       navigator.clipboard.writeText(todo.url);
+      playSound('copy-link');
       toast.success('تم نسخ الرابط');
     }
   };
@@ -213,6 +300,21 @@ const TodoItem = ({
       .trim();
   };
 
+  const addAttachmentInput = () => {
+    setEditAttachments([...editAttachments, '']);
+  };
+
+  const updateAttachmentInput = (index: number, value: string) => {
+    const newAttachments = [...editAttachments];
+    newAttachments[index] = value;
+    setEditAttachments(newAttachments);
+  };
+
+  const removeAttachmentInput = (index: number) => {
+    const newAttachments = editAttachments.filter((_, i) => i !== index);
+    setEditAttachments(newAttachments);
+  };
+
   const handleCopyTaskWithTitle = () => {
     let copyText = '';
     
@@ -237,8 +339,17 @@ const TodoItem = ({
         copyText += `\n• ${link.description}: ${link.url}`;
       });
     }
+
+    // إضافة الملفات المرفقة إذا كانت موجودة
+    if (todo.attachments && todo.attachments.length > 0) {
+      copyText += '\n\nالملفات المرافقة:';
+      todo.attachments.forEach(attachment => {
+        copyText += `\n• ${attachment.url}`;
+      });
+    }
     
     navigator.clipboard.writeText(copyText);
+    playSound('copy-single');
     toast.success('تم نسخ المهمة مع العنوان والروابط');
   };
 
@@ -265,14 +376,15 @@ const TodoItem = ({
     
     if (e.key === 'Enter' && e.ctrlKey) {
       handleSave();
-    } else if (e.key === 'Escape') {
-      setEditText(todo.text);
-      setEditUrl(todo.url || '');
-      setEditTitle(todo.title || '');
-      setEditLinks(todo.links || []);
-      setIsEditing(false);
-      setShowSuggestions(false);
-    }
+        } else if (e.key === 'Escape') {
+          setEditText(todo.text);
+          setEditUrl(todo.url || '');
+          setEditTitle(todo.title || '');
+          setEditLinks(todo.links || []);
+          setEditAttachments(todo.attachments?.map(a => a.url) || []);
+          setIsEditing(false);
+          setShowSuggestions(false);
+        }
   };
 
   const filteredSuggestions = savedTasks
@@ -376,7 +488,69 @@ const TodoItem = ({
                   isEditing={true}
                   isCollapsed={isLinksCollapsed}
                   onToggleCollapse={() => setIsLinksCollapsed(!isLinksCollapsed)}
+                  soundEnabled={soundEnabled}
                 />
+              </div>
+
+              {/* Attachments Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      الملفات المرافقة ({editAttachments.length})
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAttachmentsCollapsed(!isAttachmentsCollapsed)}
+                      className="h-6 w-6 p-0 hover:bg-primary/10"
+                    >
+                      {isAttachmentsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {!isAttachmentsCollapsed && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addAttachmentInput}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      إضافة رابط
+                    </Button>
+                  )}
+                </div>
+                
+                {!isAttachmentsCollapsed && (
+                  <div className="space-y-2">
+                    {editAttachments.map((attachment, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={attachment}
+                          onChange={(e) => updateAttachmentInput(index, e.target.value)}
+                          placeholder="https://example.com/file.pdf"
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAttachmentInput(index)}
+                          className="h-10 w-10 p-0 hover:bg-destructive/10 text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {editAttachments.length === 0 && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <Paperclip className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">لا توجد ملفات مرفقة</p>
+                        <p className="text-xs">انقر على "إضافة رابط" لإضافة ملف</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Text Area with Controls */}
@@ -472,19 +646,20 @@ const TodoItem = ({
                   <Check className="w-4 h-4" />
                   حفظ
                 </Button>
-                <Button
-                  onClick={() => {
-                    setEditText(todo.text);
-                    setEditUrl(todo.url || '');
-                    setEditTitle(todo.title || '');
-                    setEditLinks(todo.links || []);
-                    setIsEditing(false);
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
-                  إلغاء
-                </Button>
+          <Button
+            onClick={() => {
+              setEditText(todo.text);
+              setEditUrl(todo.url || '');
+              setEditTitle(todo.title || '');
+              setEditLinks(todo.links || []);
+              setEditAttachments(todo.attachments?.map(a => a.url) || []);
+              setIsEditing(false);
+            }}
+            variant="outline"
+            size="sm"
+          >
+            إلغاء
+          </Button>
                 <Button
                   onClick={() => onSaveTask(editText)}
                   variant="outline"
@@ -643,7 +818,47 @@ const TodoItem = ({
                         isEditing={false}
                         isCollapsed={isLinksCollapsed}
                         onToggleCollapse={() => setIsLinksCollapsed(!isLinksCollapsed)}
+                        soundEnabled={soundEnabled}
                       />
+                    </div>
+                  )}
+
+                  {/* Attachments Display */}
+                  {todo.attachments && todo.attachments.length > 0 && (
+                    <div className="mt-3 p-3 bg-secondary/30 rounded-lg border border-border/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Paperclip className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium text-muted-foreground">الملفات المرافقة:</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsAttachmentsCollapsed(!isAttachmentsCollapsed)}
+                          className="h-6 w-6 p-0 hover:bg-primary/10"
+                        >
+                          {isAttachmentsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      
+                      {!isAttachmentsCollapsed && (
+                        <div className="space-y-1">
+                          {todo.attachments.map((attachment, index) => (
+                            <div key={attachment.id} className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">{index + 1}.</span>
+                              <a
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:text-primary/80 transition-colors break-all"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {attachment.url}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                   {!isExpanded && shouldShowExpandButton && (
