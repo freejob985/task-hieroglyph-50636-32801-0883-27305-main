@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, Copy, ExternalLink, Link, Check, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Copy, ExternalLink, Link, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { TodoLink } from '@/types/todo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,11 @@ interface LinksManagerProps {
   links: TodoLink[];
   onLinksChange: (links: TodoLink[]) => void;
   isEditing?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-const LinksManager = ({ links, onLinksChange, isEditing = false }: LinksManagerProps) => {
+const LinksManager = ({ links, onLinksChange, isEditing = false, isCollapsed = true, onToggleCollapse }: LinksManagerProps) => {
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [newLink, setNewLink] = useState({ url: '', description: '' });
   const [editingLink, setEditingLink] = useState({ url: '', description: '' });
@@ -116,10 +118,20 @@ const LinksManager = ({ links, onLinksChange, isEditing = false }: LinksManagerP
         <div className="flex items-center gap-2">
           <Link className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-muted-foreground">
-            الروابط ({links.length})
+            الروابط المرافقة ({links.length})
           </span>
+          {onToggleCollapse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              className="h-6 w-6 p-0 hover:bg-primary/10"
+            >
+              {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </Button>
+          )}
         </div>
-        {isEditing && (
+        {isEditing && !isCollapsed && (
           <div className="flex gap-2">
             {links.length > 0 && (
               <Button
@@ -147,7 +159,7 @@ const LinksManager = ({ links, onLinksChange, isEditing = false }: LinksManagerP
       </div>
 
       {/* Add New Link Form */}
-      {isEditing && (
+      {isEditing && !isCollapsed && (
         <div className="p-4 bg-secondary/20 rounded-lg border border-dashed border-border">
           <div className="space-y-3">
             <div>
@@ -195,8 +207,9 @@ const LinksManager = ({ links, onLinksChange, isEditing = false }: LinksManagerP
       )}
 
       {/* Links List */}
-      <div className="space-y-2">
-        {links.map((link) => (
+      {!isCollapsed && (
+        <div className="space-y-2">
+          {links.map((link) => (
           <div
             key={link.id}
             className="p-3 bg-card rounded-lg border border-border hover:border-primary/30 transition-colors"
@@ -311,10 +324,11 @@ const LinksManager = ({ links, onLinksChange, isEditing = false }: LinksManagerP
               </div>
             )}
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {links.length === 0 && !isEditing && (
+      {links.length === 0 && !isEditing && !isCollapsed && (
         <div className="text-center py-8 text-muted-foreground">
           <Link className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">لا توجد روابط مضافة</p>

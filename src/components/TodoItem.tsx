@@ -65,6 +65,7 @@ const TodoItem = ({
   const [isImproving, setIsImproving] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isLinksCollapsed, setIsLinksCollapsed] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isListening, startListening, stopListening } = useSpeechRecognition(
@@ -231,7 +232,7 @@ const TodoItem = ({
     
     // إضافة الروابط الجديدة إذا كانت موجودة
     if (todo.links && todo.links.length > 0) {
-      copyText += '\n\nالروابط:';
+      copyText += '\n\nالروابط المرافقة:';
       todo.links.forEach(link => {
         copyText += `\n• ${link.description}: ${link.url}`;
       });
@@ -373,6 +374,8 @@ const TodoItem = ({
                   links={editLinks}
                   onLinksChange={setEditLinks}
                   isEditing={true}
+                  isCollapsed={isLinksCollapsed}
+                  onToggleCollapse={() => setIsLinksCollapsed(!isLinksCollapsed)}
                 />
               </div>
 
@@ -638,6 +641,8 @@ const TodoItem = ({
                         links={todo.links}
                         onLinksChange={(links) => onUpdate(todo.id, todo.text, { links })}
                         isEditing={false}
+                        isCollapsed={isLinksCollapsed}
+                        onToggleCollapse={() => setIsLinksCollapsed(!isLinksCollapsed)}
                       />
                     </div>
                   )}

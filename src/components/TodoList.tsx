@@ -400,7 +400,7 @@ const TodoList = () => {
         
         // إضافة الروابط الجديدة إذا كانت موجودة
         if (todo.links && todo.links.length > 0) {
-          result += '\n\nالروابط:';
+          result += '\n\nالروابط المرافقة:';
           todo.links.forEach(link => {
             result += `\n• ${link.description}: ${link.url}`;
           });
@@ -490,7 +490,7 @@ const TodoList = () => {
         
         // إضافة الروابط الجديدة إذا كانت موجودة
         if (todo.links && todo.links.length > 0) {
-          result += '\n\nالروابط:';
+          result += '\n\nالروابط المرافقة:';
           todo.links.forEach(link => {
             result += `\n• ${link.description}: ${link.url}`;
           });
