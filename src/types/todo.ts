@@ -1,3 +1,10 @@
+export interface TodoLink {
+  id: string;
+  url: string;
+  description: string;
+  createdAt: number;
+}
+
 export interface Todo {
   id: string;
   text: string;
@@ -10,8 +17,9 @@ export interface Todo {
   technologies?: string[];
   notes?: string;
   fontSize?: number;
-  url?: string;
+  url?: string; // Keep for backward compatibility
   title?: string;
+  links?: TodoLink[]; // New field for multiple links
 }
 
 export interface Workspace {

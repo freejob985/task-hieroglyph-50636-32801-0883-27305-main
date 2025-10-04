@@ -393,9 +393,17 @@ const TodoList = () => {
         const cleanText = removeMarkdownSyntax(todo.text);
         result += `المهمة: ${cleanText}`;
         
-        // إضافة الرابط إذا كان موجوداً
+        // إضافة الرابط القديم إذا كان موجوداً (للتوافق مع الإصدارات السابقة)
         if (todo.url) {
           result += `\n\nالرابط: ${todo.url}`;
+        }
+        
+        // إضافة الروابط الجديدة إذا كانت موجودة
+        if (todo.links && todo.links.length > 0) {
+          result += '\n\nالروابط:';
+          todo.links.forEach(link => {
+            result += `\n• ${link.description}: ${link.url}`;
+          });
         }
         
         // إضافة المهام الفرعية
@@ -406,6 +414,11 @@ const TodoList = () => {
             result += `\n• ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
+            }
+            if (sub.links && sub.links.length > 0) {
+              sub.links.forEach(link => {
+                result += `\n  🔗 ${link.description}: ${link.url}`;
+              });
             }
           });
         }
@@ -470,9 +483,17 @@ const TodoList = () => {
         const cleanText = removeMarkdownSyntax(todo.text);
         result += `المهمة: ${cleanText}`;
         
-        // إضافة الرابط إذا كان موجوداً
+        // إضافة الرابط القديم إذا كان موجوداً (للتوافق مع الإصدارات السابقة)
         if (todo.url) {
           result += `\n\nالرابط: ${todo.url}`;
+        }
+        
+        // إضافة الروابط الجديدة إذا كانت موجودة
+        if (todo.links && todo.links.length > 0) {
+          result += '\n\nالروابط:';
+          todo.links.forEach(link => {
+            result += `\n• ${link.description}: ${link.url}`;
+          });
         }
         
         // إضافة المهام الفرعية
@@ -483,6 +504,11 @@ const TodoList = () => {
             result += `\n• ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
+            }
+            if (sub.links && sub.links.length > 0) {
+              sub.links.forEach(link => {
+                result += `\n  🔗 ${link.description}: ${link.url}`;
+              });
             }
           });
         }

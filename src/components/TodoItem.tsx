@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck } from 'lucide-react';
-import { Todo } from '@/types/todo';
+import { Todo, TodoLink } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { improveTextWithGemini, generatePrompt, generateTaskTitle } from '@/utils/geminiService';
 import TechnologyInput from './TechnologyInput';
+import LinksManager from './LinksManager';
 import { toast } from 'sonner';
 import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 
@@ -58,6 +59,7 @@ const TodoItem = ({
   const [editText, setEditText] = useState(todo.text);
   const [editUrl, setEditUrl] = useState(todo.url || '');
   const [editTitle, setEditTitle] = useState(todo.title || '');
+  const [editLinks, setEditLinks] = useState<TodoLink[]>(todo.links || []);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [isImproving, setIsImproving] = useState(false);
@@ -111,13 +113,15 @@ const TodoItem = ({
     setEditText(todo.text);
     setEditUrl(todo.url || '');
     setEditTitle(todo.title || '');
-  }, [todo.text, todo.url, todo.title]);
+    setEditLinks(todo.links || []);
+  }, [todo.text, todo.url, todo.title, todo.links]);
 
   const handleSave = () => {
     if (editText.trim()) {
       onUpdate(todo.id, editText.trim(), { 
         url: editUrl.trim() || undefined,
-        title: editTitle.trim() || undefined
+        title: editTitle.trim() || undefined,
+        links: editLinks.length > 0 ? editLinks : undefined
       });
       setIsEditing(false);
     }
@@ -220,13 +224,21 @@ const TodoItem = ({
     const cleanText = removeMarkdownSyntax(todo.text);
     copyText += `المهمة: ${cleanText}`;
     
-    // إضافة الرابط إذا كان موجوداً
+    // إضافة الرابط القديم إذا كان موجوداً (للتوافق مع الإصدارات السابقة)
     if (todo.url) {
       copyText += `\n\nالرابط: ${todo.url}`;
     }
     
+    // إضافة الروابط الجديدة إذا كانت موجودة
+    if (todo.links && todo.links.length > 0) {
+      copyText += '\n\nالروابط:';
+      todo.links.forEach(link => {
+        copyText += `\n• ${link.description}: ${link.url}`;
+      });
+    }
+    
     navigator.clipboard.writeText(copyText);
-    toast.success('تم نسخ المهمة مع العنوان والرابط');
+    toast.success('تم نسخ المهمة مع العنوان والروابط');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -256,6 +268,7 @@ const TodoItem = ({
       setEditText(todo.text);
       setEditUrl(todo.url || '');
       setEditTitle(todo.title || '');
+      setEditLinks(todo.links || []);
       setIsEditing(false);
       setShowSuggestions(false);
     }
@@ -339,11 +352,11 @@ const TodoItem = ({
                 </div>
               </div>
 
-              {/* URL Input */}
+              {/* URL Input (Legacy) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Link className="w-4 h-4" />
-                  رابط المشكلة (اختياري)
+                  رابط المشكلة (اختياري - للتوافق مع الإصدارات السابقة)
                 </label>
                 <Input
                   type="url"
@@ -351,6 +364,15 @@ const TodoItem = ({
                   onChange={(e) => setEditUrl(e.target.value)}
                   placeholder="https://example.com/problem-url"
                   className="w-full"
+                />
+              </div>
+
+              {/* Links Manager */}
+              <div className="space-y-2">
+                <LinksManager
+                  links={editLinks}
+                  onLinksChange={setEditLinks}
+                  isEditing={true}
                 />
               </div>
 
@@ -452,6 +474,7 @@ const TodoItem = ({
                     setEditText(todo.text);
                     setEditUrl(todo.url || '');
                     setEditTitle(todo.title || '');
+                    setEditLinks(todo.links || []);
                     setIsEditing(false);
                   }}
                   variant="outline"
@@ -560,13 +583,13 @@ const TodoItem = ({
                     )}
                   </div>
                   
-                  {/* URL Display */}
+                  {/* Legacy URL Display */}
                   {todo.url && (
                     <div className="mt-3 p-3 bg-secondary/30 rounded-lg border border-border/50">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Link className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium text-muted-foreground">رابط المشكلة:</span>
+                          <span className="text-sm font-medium text-muted-foreground">رابط المشكلة (قديم):</span>
                         </div>
                         <div className="flex gap-1">
                           <Button
@@ -605,6 +628,17 @@ const TodoItem = ({
                         <span className="text-sm">{todo.url}</span>
                         <ExternalLink className="w-3 h-3 flex-shrink-0" />
                       </a>
+                    </div>
+                  )}
+
+                  {/* Links Display */}
+                  {todo.links && todo.links.length > 0 && (
+                    <div className="mt-3">
+                      <LinksManager
+                        links={todo.links}
+                        onLinksChange={(links) => onUpdate(todo.id, todo.text, { links })}
+                        isEditing={false}
+                      />
                     </div>
                   )}
                   {!isExpanded && shouldShowExpandButton && (
