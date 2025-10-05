@@ -74,34 +74,7 @@ const TodoList = () => {
   const [copiedTodo, setCopiedTodo] = useState<Todo | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null);
-  const [sections, setSections] = useState<Section[]>(() => {
-    try {
-      const saved = localStorage.getItem("sections");
-      return saved ? JSON.parse(saved) : [
-        {
-          id: "default-1",
-          name: "مهام العمل",
-          description: "المهام المتعلقة بالعمل",
-          color: "blue",
-          order: 0,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: "default-2", 
-          name: "مهام شخصية",
-          description: "المهام الشخصية واليومية",
-          color: "green",
-          order: 1,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        }
-      ];
-    } catch (error) {
-      console.warn("Error reading sections from localStorage:", error);
-      return [];
-    }
-  });
+  const [sections, setSections] = useState<Section[]>([]);
   const [currentSection, setCurrentSection] = useState<string | null>(null);
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [savedTasks, setSavedTasks] = useState<SavedTask[]>([]);
@@ -216,7 +189,33 @@ const TodoList = () => {
     if (savedCurrentWorkspace) setCurrentWorkspace(savedCurrentWorkspace);
     if (savedTasksData) setSavedTasks(JSON.parse(savedTasksData));
     if (savedArchivedTasks) setArchivedTasks(JSON.parse(savedArchivedTasks));
-    if (savedSections) setSections(JSON.parse(savedSections));
+    if (savedSections) {
+      setSections(JSON.parse(savedSections));
+    } else {
+      // إنشاء أقسام افتراضية إذا لم تكن موجودة
+      const defaultSections = [
+        {
+          id: "default-1",
+          name: "مهام العمل",
+          description: "المهام المتعلقة بالعمل",
+          color: "blue",
+          order: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        {
+          id: "default-2", 
+          name: "مهام شخصية",
+          description: "المهام الشخصية واليومية",
+          color: "green",
+          order: 1,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }
+      ];
+      setSections(defaultSections);
+      localStorage.setItem("sections", JSON.stringify(defaultSections));
+    }
     if (savedCurrentSection) setCurrentSection(savedCurrentSection || null);
     if (savedSectionsCollapsed) setSectionsCollapsed(JSON.parse(savedSectionsCollapsed));
   }, []);
@@ -1447,7 +1446,7 @@ const TodoList = () => {
     let filteredTodos = todos.filter((todo) => !todo.parentId);
     
     if (currentSection === null) {
-      // Show all tasks not in any section
+      // Show all tasks not in any section (general tasks)
       filteredTodos = filteredTodos.filter(todo => todo.sectionId === null);
     } else {
       // Show tasks in current section
@@ -2035,7 +2034,8 @@ const TodoList = () => {
                     );
                   }
 
-                  if (visibleGeneralTodos.length === 0) return null;
+                  // Always show the general tasks section, even if empty
+                  // if (visibleGeneralTodos.length === 0) return null;
 
                   return (
                     <div className="space-y-3">
@@ -2047,7 +2047,13 @@ const TodoList = () => {
                         </span>
                       </div>
                       
-                      <Droppable droppableId="main-tasks">
+                      {visibleGeneralTodos.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>لا توجد مهام عامة حالياً</p>
+                          <p className="text-sm">أضف مهمة جديدة أو اسحب مهام من الأقسام الأخرى</p>
+                        </div>
+                      ) : (
+                        <Droppable droppableId="main-tasks">
                         {(provided) => (
                           <div
                             {...provided.droppableProps}
@@ -2167,7 +2173,8 @@ const TodoList = () => {
                             {provided.placeholder}
                           </div>
                         )}
-                      </Droppable>
+                        </Droppable>
+                      )}
                     </div>
                   );
                 })()}
