@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Todo, ContextMenuPosition, Workspace, SavedTask, ArchivedTask } from "@/types/todo";
+import { Todo, ContextMenuPosition, Workspace, SavedTask, ArchivedTask, Section } from "@/types/todo";
 import TodoItem from "./TodoItem";
 import ContextMenu from "./ContextMenu";
 import ProgressBar from "./ProgressBar";
@@ -25,6 +25,7 @@ import ThemeToggle from "./ThemeToggle";
 import CheckboxLegend from "./CheckboxLegend";
 import WorkspaceManager from "./WorkspaceManager";
 import ArchiveManager from "./ArchiveManager";
+import SectionManager from "./SectionManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,6 +54,17 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 
+const SECTION_COLORS = [
+  { name: "أزرق", value: "blue", class: "bg-blue-500" },
+  { name: "أخضر", value: "green", class: "bg-green-500" },
+  { name: "أحمر", value: "red", class: "bg-red-500" },
+  { name: "أصفر", value: "yellow", class: "bg-yellow-500" },
+  { name: "بنفسجي", value: "purple", class: "bg-purple-500" },
+  { name: "وردي", value: "pink", class: "bg-pink-500" },
+  { name: "برتقالي", value: "orange", class: "bg-orange-500" },
+  { name: "رمادي", value: "gray", class: "bg-gray-500" },
+];
+
 const TodoList = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [contextMenu, setContextMenu] = useState<{
@@ -62,6 +74,36 @@ const TodoList = () => {
   const [copiedTodo, setCopiedTodo] = useState<Todo | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null);
+  const [sections, setSections] = useState<Section[]>(() => {
+    try {
+      const saved = localStorage.getItem("sections");
+      return saved ? JSON.parse(saved) : [
+        {
+          id: "default-1",
+          name: "مهام العمل",
+          description: "المهام المتعلقة بالعمل",
+          color: "blue",
+          order: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        {
+          id: "default-2", 
+          name: "مهام شخصية",
+          description: "المهام الشخصية واليومية",
+          color: "green",
+          order: 1,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }
+      ];
+    } catch (error) {
+      console.warn("Error reading sections from localStorage:", error);
+      return [];
+    }
+  });
+  const [currentSection, setCurrentSection] = useState<string | null>(null);
+  const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [savedTasks, setSavedTasks] = useState<SavedTask[]>([]);
   const [newTaskText, setNewTaskText] = useState("");
   const [hideCompleted, setHideCompleted] = useState(() => {
@@ -153,10 +195,10 @@ const TodoList = () => {
   const saveCurrentWorkspace = useCallback((workspaceId: string, todos: Todo[]) => {
     setWorkspaces(workspaces.map(ws => 
       ws.id === workspaceId 
-        ? { ...ws, todos: [...todos], updatedAt: Date.now() }
+        ? { ...ws, todos: [...todos], sections: [...sections], updatedAt: Date.now() }
         : ws
     ));
-  }, [workspaces]);
+  }, [workspaces, sections]);
 
   // Load from localStorage
   useEffect(() => {
@@ -165,12 +207,18 @@ const TodoList = () => {
     const savedCurrentWorkspace = localStorage.getItem("currentWorkspace");
     const savedTasksData = localStorage.getItem("savedTasks");
     const savedArchivedTasks = localStorage.getItem("archivedTasks");
+    const savedSections = localStorage.getItem("sections");
+    const savedCurrentSection = localStorage.getItem("currentSection");
+    const savedSectionsCollapsed = localStorage.getItem("sectionsCollapsed");
 
     if (saved) setTodos(JSON.parse(saved));
     if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
     if (savedCurrentWorkspace) setCurrentWorkspace(savedCurrentWorkspace);
     if (savedTasksData) setSavedTasks(JSON.parse(savedTasksData));
     if (savedArchivedTasks) setArchivedTasks(JSON.parse(savedArchivedTasks));
+    if (savedSections) setSections(JSON.parse(savedSections));
+    if (savedCurrentSection) setCurrentSection(savedCurrentSection || null);
+    if (savedSectionsCollapsed) setSectionsCollapsed(JSON.parse(savedSectionsCollapsed));
   }, []);
 
   // Auto-save
@@ -199,6 +247,18 @@ const TodoList = () => {
   useEffect(() => {
     localStorage.setItem("archivedTasks", JSON.stringify(archivedTasks));
   }, [archivedTasks]);
+
+  useEffect(() => {
+    localStorage.setItem("sections", JSON.stringify(sections));
+  }, [sections]);
+
+  useEffect(() => {
+    localStorage.setItem("currentSection", currentSection || "");
+  }, [currentSection]);
+
+  useEffect(() => {
+    localStorage.setItem("sectionsCollapsed", JSON.stringify(sectionsCollapsed));
+  }, [sectionsCollapsed]);
 
   useEffect(() => {
     localStorage.setItem("globalPromptMode", globalPromptMode);
@@ -260,7 +320,7 @@ const TodoList = () => {
     }
   }, [soundEnabled]);
 
-  const addTodo = useCallback((text: string, parentId: string | null = null) => {
+  const addTodo = useCallback((text: string, parentId: string | null = null, sectionId: string | null = null) => {
     if (!text.trim()) return;
 
     const newTodo: Todo = {
@@ -268,6 +328,7 @@ const TodoList = () => {
       text: text.trim(),
       completed: false,
       parentId,
+      sectionId: sectionId || currentSection,
       order: todos.length,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -276,7 +337,7 @@ const TodoList = () => {
     setTodos([...todos, newTodo]);
     toast.success("تمت إضافة المهمة بنجاح");
     setNewTaskText("");
-  }, [todos]);
+  }, [todos, currentSection]);
 
   const updateTodo = (id: string, text: string, updates?: Partial<Todo>) => {
     setTodos(
@@ -731,8 +792,112 @@ const TodoList = () => {
     const workspace: Workspace = {
       ...workspaceData,
       id: Date.now().toString(),
+      sections: workspaceData.sections || [],
     };
     setWorkspaces([...workspaces, workspace]);
+  };
+
+  // Section management functions
+  const createSection = (sectionData: Omit<Section, "id">) => {
+    const section: Section = {
+      ...sectionData,
+      id: Date.now().toString(),
+    };
+    setSections([...sections, section]);
+  };
+
+  const updateSection = (id: string, updates: Partial<Section>) => {
+    setSections(sections.map(s => 
+      s.id === id ? { ...s, ...updates } : s
+    ));
+  };
+
+  const deleteSection = (id: string) => {
+    // Move tasks from deleted section to no section
+    setTodos(todos.map(todo => 
+      todo.sectionId === id ? { ...todo, sectionId: null } : todo
+    ));
+    setSections(sections.filter(s => s.id !== id));
+    if (currentSection === id) {
+      setCurrentSection(null);
+    }
+  };
+
+  const copySectionTasks = (sectionId: string) => {
+    let tasksToCopy: Todo[];
+    
+    if (sectionId === "all") {
+      tasksToCopy = todos.filter(todo => !todo.parentId);
+    } else {
+      tasksToCopy = todos.filter(todo => todo.sectionId === sectionId && !todo.parentId);
+    }
+
+    if (tasksToCopy.length === 0) {
+      toast.error("لا توجد مهام في هذا القسم");
+      return;
+    }
+
+    const text = tasksToCopy
+      .map((todo) => {
+        const subTasks = todos.filter(
+          (t) => t.parentId === todo.id
+        );
+        
+        let result = '';
+        
+        if (todo.title) {
+          result += `العنوان: ${todo.title}\n\n`;
+        }
+        
+        const cleanText = removeMarkdownSyntax(todo.text);
+        result += `المهمة: ${cleanText}`;
+        
+        if (todo.url) {
+          result += `\n\nالرابط: ${todo.url}`;
+        }
+        
+        if (todo.links && todo.links.length > 0) {
+          result += '\n\nالروابط المرافقة:';
+          todo.links.forEach(link => {
+            result += `\n• ${link.description}: ${link.url}`;
+          });
+        }
+
+        if (todo.attachments && todo.attachments.length > 0) {
+          result += '\n\nالملفات المرافقة:';
+          todo.attachments.forEach(attachment => {
+            result += `\n• ${attachment.url}`;
+          });
+        }
+        
+        if (subTasks.length > 0) {
+          result += '\n\nالمهام الفرعية:';
+          subTasks.forEach((sub) => {
+            const cleanSubText = removeMarkdownSyntax(sub.text);
+            result += `\n• ${cleanSubText}`;
+            if (sub.url) {
+              result += `\n  🔗 ${sub.url}`;
+            }
+            if (sub.links && sub.links.length > 0) {
+              sub.links.forEach(link => {
+                result += `\n  🔗 ${link.description}: ${link.url}`;
+              });
+            }
+            if (sub.attachments && sub.attachments.length > 0) {
+              sub.attachments.forEach(attachment => {
+                result += `\n  📎 ${attachment.url}`;
+              });
+            }
+          });
+        }
+        
+        return result;
+      })
+      .join("\n\n" + "=".repeat(50) + "\n\n");
+
+    navigator.clipboard.writeText(text);
+    playSound('copy-selected');
+    toast.success(`تم نسخ ${tasksToCopy.length} مهمة من القسم`);
   };
 
   const updateWorkspace = (id: string, updates: Partial<Workspace>) => {
@@ -757,6 +922,7 @@ const TodoList = () => {
         id: Date.now().toString(),
         name,
         todos: [...todos],
+        sections: [...sections],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -771,13 +937,17 @@ const TodoList = () => {
       const workspace = workspaces.find((ws) => ws.id === workspaceId);
       if (workspace) {
         setTodos(workspace.todos);
+        setSections(workspace.sections || []);
         setCurrentWorkspace(workspaceId);
+        setCurrentSection(null); // Reset section when changing workspace
         toast.success(`تم التبديل إلى: ${workspace.name}`);
       }
     } else {
       // Switch to default workspace (empty todos)
       setTodos([]);
+      setSections([]);
       setCurrentWorkspace(null);
+      setCurrentSection(null);
       toast.info("تم التبديل إلى مساحة العمل الافتراضية");
     }
   };
@@ -1141,17 +1311,75 @@ const TodoList = () => {
     const sourceDroppableId = source.droppableId;
     const destinationDroppableId = destination.droppableId;
 
-    // Only allow reordering within same parent
-    if (sourceDroppableId !== destinationDroppableId) {
+    // Handle cross-section movement
+    if (sourceDroppableId.startsWith("section-") && destinationDroppableId.startsWith("section-")) {
+      const sourceSectionId = sourceDroppableId.replace("section-", "");
+      const destSectionId = destinationDroppableId.replace("section-", "");
+      
+      if (sourceSectionId !== destSectionId) {
+        // Move task to different section
+        const taskToMove = todos.find(t => t.id === result.draggableId);
+        if (taskToMove) {
+          setTodos(todos.map(todo => 
+            todo.id === result.draggableId 
+              ? { ...todo, sectionId: destSectionId, updatedAt: Date.now() }
+              : todo
+          ));
+          toast.success("تم نقل المهمة إلى القسم الجديد");
+        }
+        return;
+      }
+    }
+
+    // Handle section to main tasks movement
+    if (sourceDroppableId.startsWith("section-") && destinationDroppableId === "main-tasks") {
+      const sourceSectionId = sourceDroppableId.replace("section-", "");
+      const taskToMove = todos.find(t => t.id === result.draggableId);
+      if (taskToMove) {
+        setTodos(todos.map(todo => 
+          todo.id === result.draggableId 
+            ? { ...todo, sectionId: null, updatedAt: Date.now() }
+            : todo
+        ));
+        toast.success("تم نقل المهمة إلى المهام العامة");
+      }
+      return;
+    }
+
+    // Handle main tasks to section movement
+    if (sourceDroppableId === "main-tasks" && destinationDroppableId.startsWith("section-")) {
+      const destSectionId = destinationDroppableId.replace("section-", "");
+      const taskToMove = todos.find(t => t.id === result.draggableId);
+      if (taskToMove) {
+        setTodos(todos.map(todo => 
+          todo.id === result.draggableId 
+            ? { ...todo, sectionId: destSectionId, updatedAt: Date.now() }
+            : todo
+        ));
+        toast.success("تم نقل المهمة إلى القسم");
+      }
+      return;
+    }
+
+    // Only allow reordering within same parent for subtasks
+    if (sourceDroppableId !== destinationDroppableId && !sourceDroppableId.startsWith("section-")) {
       toast.error("لا يمكن نقل المهمة إلى مجموعة أخرى");
       return;
     }
 
     // Get the items being reordered
     const isMainTask = sourceDroppableId === "main-tasks";
-    const items = isMainTask
-      ? todos.filter((t) => !t.parentId)
-      : todos.filter((t) => t.parentId === sourceDroppableId);
+    const isSectionTask = sourceDroppableId.startsWith("section-");
+    
+    let items: Todo[];
+    if (isMainTask) {
+      items = todos.filter((t) => !t.parentId && t.sectionId === null);
+    } else if (isSectionTask) {
+      const sectionId = sourceDroppableId.replace("section-", "");
+      items = todos.filter((t) => !t.parentId && t.sectionId === sectionId);
+    } else {
+      items = todos.filter((t) => t.parentId === sourceDroppableId);
+    }
 
     // Reorder the items
     const [reorderedItem] = items.splice(source.index, 1);
@@ -1165,9 +1393,15 @@ const TodoList = () => {
     }));
 
     // Merge with other todos
-    const otherTodos = isMainTask
-      ? todos.filter((t) => t.parentId)
-      : todos.filter((t) => !t.parentId || t.parentId !== sourceDroppableId);
+    let otherTodos: Todo[];
+    if (isMainTask) {
+      otherTodos = todos.filter((t) => t.parentId || t.sectionId !== null);
+    } else if (isSectionTask) {
+      const sectionId = sourceDroppableId.replace("section-", "");
+      otherTodos = todos.filter((t) => !t.parentId && t.sectionId !== sectionId);
+    } else {
+      otherTodos = todos.filter((t) => !t.parentId || t.parentId !== sourceDroppableId);
+    }
 
     // Replace old items with updated items
     const newTodos = [...otherTodos];
@@ -1208,9 +1442,22 @@ const TodoList = () => {
     });
   };
 
-  const mainTodos = todos
-    .filter((todo) => !todo.parentId)
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  // Filter todos based on current section
+  const getFilteredTodos = () => {
+    let filteredTodos = todos.filter((todo) => !todo.parentId);
+    
+    if (currentSection === null) {
+      // Show all tasks not in any section
+      filteredTodos = filteredTodos.filter(todo => todo.sectionId === null);
+    } else {
+      // Show tasks in current section
+      filteredTodos = filteredTodos.filter(todo => todo.sectionId === currentSection);
+    }
+    
+    return filteredTodos.sort((a, b) => (a.order || 0) - (b.order || 0));
+  };
+
+  const mainTodos = getFilteredTodos();
   let visibleMainTodos = hideCompleted
     ? mainTodos.filter((t) => !t.completed)
     : mainTodos;
@@ -1321,6 +1568,23 @@ const TodoList = () => {
             onWorkspaceUpdate={updateWorkspace}
             onWorkspaceDelete={deleteWorkspace}
             onWorkspaceSave={saveCurrentWorkspace}
+          />
+        </div>
+
+        {/* Section Manager */}
+        <div className="mb-6">
+          <SectionManager
+            sections={sections}
+            currentSection={currentSection}
+            onSectionChange={setCurrentSection}
+            onSectionCreate={createSection}
+            onSectionUpdate={updateSection}
+            onSectionDelete={deleteSection}
+            onSectionReorder={() => {}} // TODO: Implement section reordering
+            onCopySectionTasks={copySectionTasks}
+            todos={todos}
+            isCollapsed={sectionsCollapsed}
+            onToggleCollapse={() => setSectionsCollapsed(!sectionsCollapsed)}
           />
         </div>
 
@@ -1750,86 +2014,63 @@ const TodoList = () => {
 
         {/* Tasks */}
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="space-y-3">
-            <Droppable droppableId="main-tasks">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-3"
-                >
-                  {paginatedTodos.map((todo, index) => {
-                    const subTodos = todos
-                      .filter((t) => t.parentId === todo.id)
-                      .sort((a, b) => (a.order || 0) - (b.order || 0));
-                    let visibleSubTodos = hideCompleted
-                      ? subTodos.filter((t) => !t.completed)
-                      : subTodos;
+          <div className="space-y-6">
+            {/* Show all sections or just current section */}
+            {currentSection === null ? (
+              // Show all sections
+              <div className="space-y-6">
+                {/* General Tasks (no section) */}
+                {(() => {
+                  const generalTodos = todos
+                    .filter(todo => !todo.parentId && todo.sectionId === null)
+                    .sort((a, b) => (a.order || 0) - (b.order || 0));
+                  
+                  let visibleGeneralTodos = hideCompleted
+                    ? generalTodos.filter(t => !t.completed)
+                    : generalTodos;
 
-                    // Apply selected filter for sub-todos if enabled
-                    if (showSelectedOnly && selectedTodos.length > 0) {
-                      visibleSubTodos = visibleSubTodos.filter((t) =>
-                        selectedTodos.includes(t.id)
-                      );
-                    }
+                  if (showSelectedOnly && selectedTodos.length > 0) {
+                    visibleGeneralTodos = visibleGeneralTodos.filter(t =>
+                      selectedTodos.includes(t.id)
+                    );
+                  }
 
-                    return (
-                      <div key={todo.id} className="space-y-2">
-                        <Draggable draggableId={todo.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              style={provided.draggableProps.style}
-                            >
-                              <TodoItem
-                                todo={todo}
-                                isSubTask={false}
-                                onUpdate={updateTodo}
-                                onToggle={toggleTodo}
-                                onDelete={deleteTodo}
-                                onContextMenu={handleContextMenu}
-                                savedTasks={savedTasks}
-                                onSaveTask={saveTask}
-                                onUseSavedTask={useSavedTask}
-                                onAddTask={() => addTodo("مهمة جديدة")}
-                                showTextOnly={showTextOnly}
-                                dragHandleProps={provided.dragHandleProps}
-                                isDragging={snapshot.isDragging}
-                                globalPromptMode={globalPromptMode}
-                                globalFontSize={globalFontSize}
-                                globalLineHeight={globalLineHeight}
-                                isSelected={selectedTodos.includes(todo.id)}
-                                onToggleSelect={toggleSelectTodo}
-                                soundEnabled={soundEnabled}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
+                  if (visibleGeneralTodos.length === 0) return null;
 
-                        {visibleSubTodos.length > 0 && (
-                          <div className="ml-6 mt-3">
-                            {/* Subtasks Header */}
-                            <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
-                              <div className="w-2 h-2 bg-primary rounded-full"></div>
-                              <span className="text-sm font-medium text-primary">
-                                المهام الفرعية ({visibleSubTodos.length})
-                              </span>
-                            </div>
-                            
-                            <Droppable droppableId={todo.id}>
-                              {(provided) => (
-                                <div
-                                  {...provided.droppableProps}
-                                  ref={provided.innerRef}
-                                  className="space-y-2"
-                                >
-                                {visibleSubTodos.map((subTodo, subIndex) => (
-                                  <Draggable
-                                    key={subTodo.id}
-                                    draggableId={subTodo.id}
-                                    index={subIndex}
-                                  >
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-card rounded-lg border">
+                        <div className="w-3 h-3 rounded-full bg-gray-400" />
+                        <h3 className="font-semibold text-lg">المهام العامة</h3>
+                        <span className="text-sm text-muted-foreground">
+                          ({visibleGeneralTodos.length} مهمة)
+                        </span>
+                      </div>
+                      
+                      <Droppable droppableId="main-tasks">
+                        {(provided) => (
+                          <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className="space-y-3"
+                          >
+                            {visibleGeneralTodos.map((todo, index) => {
+                              const subTodos = todos
+                                .filter((t) => t.parentId === todo.id)
+                                .sort((a, b) => (a.order || 0) - (b.order || 0));
+                              let visibleSubTodos = hideCompleted
+                                ? subTodos.filter((t) => !t.completed)
+                                : subTodos;
+
+                              if (showSelectedOnly && selectedTodos.length > 0) {
+                                visibleSubTodos = visibleSubTodos.filter(t =>
+                                  selectedTodos.includes(t.id)
+                                );
+                              }
+
+                              return (
+                                <div key={todo.id} className="space-y-2">
+                                  <Draggable draggableId={todo.id} index={index}>
                                     {(provided, snapshot) => (
                                       <div
                                         ref={provided.innerRef}
@@ -1837,8 +2078,8 @@ const TodoList = () => {
                                         style={provided.draggableProps.style}
                                       >
                                         <TodoItem
-                                          todo={subTodo}
-                                          isSubTask={true}
+                                          todo={todo}
+                                          isSubTask={false}
                                           onUpdate={updateTodo}
                                           onToggle={toggleTodo}
                                           onDelete={deleteTodo}
@@ -1846,40 +2087,383 @@ const TodoList = () => {
                                           savedTasks={savedTasks}
                                           onSaveTask={saveTask}
                                           onUseSavedTask={useSavedTask}
-                                          onAddTask={() =>
-                                            addTodo("مهمة جديدة")
-                                          }
+                                          onAddTask={() => addTodo("مهمة جديدة")}
                                           showTextOnly={showTextOnly}
-                                          dragHandleProps={
-                                            provided.dragHandleProps
-                                          }
+                                          dragHandleProps={provided.dragHandleProps}
                                           isDragging={snapshot.isDragging}
                                           globalPromptMode={globalPromptMode}
                                           globalFontSize={globalFontSize}
                                           globalLineHeight={globalLineHeight}
-                                          isSelected={selectedTodos.includes(
-                                            subTodo.id
-                                          )}
+                                          isSelected={selectedTodos.includes(todo.id)}
                                           onToggleSelect={toggleSelectTodo}
                                           soundEnabled={soundEnabled}
                                         />
                                       </div>
                                     )}
                                   </Draggable>
-                                ))}
-                                {provided.placeholder}
+
+                                  {visibleSubTodos.length > 0 && (
+                                    <div className="ml-6 mt-3">
+                                      <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
+                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                        <span className="text-sm font-medium text-primary">
+                                          المهام الفرعية ({visibleSubTodos.length})
+                                        </span>
+                                      </div>
+                                      
+                                      <Droppable droppableId={todo.id}>
+                                        {(provided) => (
+                                          <div
+                                            {...provided.droppableProps}
+                                            ref={provided.innerRef}
+                                            className="space-y-2"
+                                          >
+                                            {visibleSubTodos.map((subTodo, subIndex) => (
+                                              <Draggable
+                                                key={subTodo.id}
+                                                draggableId={subTodo.id}
+                                                index={subIndex}
+                                              >
+                                                {(provided, snapshot) => (
+                                                  <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    style={provided.draggableProps.style}
+                                                  >
+                                                    <TodoItem
+                                                      todo={subTodo}
+                                                      isSubTask={true}
+                                                      onUpdate={updateTodo}
+                                                      onToggle={toggleTodo}
+                                                      onDelete={deleteTodo}
+                                                      onContextMenu={handleContextMenu}
+                                                      savedTasks={savedTasks}
+                                                      onSaveTask={saveTask}
+                                                      onUseSavedTask={useSavedTask}
+                                                      onAddTask={() => addTodo("مهمة جديدة")}
+                                                      showTextOnly={showTextOnly}
+                                                      dragHandleProps={provided.dragHandleProps}
+                                                      isDragging={snapshot.isDragging}
+                                                      globalPromptMode={globalPromptMode}
+                                                      globalFontSize={globalFontSize}
+                                                      globalLineHeight={globalLineHeight}
+                                                      isSelected={selectedTodos.includes(subTodo.id)}
+                                                      onToggleSelect={toggleSelectTodo}
+                                                      soundEnabled={soundEnabled}
+                                                    />
+                                                  </div>
+                                                )}
+                                              </Draggable>
+                                            ))}
+                                            {provided.placeholder}
+                                          </div>
+                                        )}
+                                      </Droppable>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </Droppable>
+                              );
+                            })}
+                            {provided.placeholder}
                           </div>
                         )}
+                      </Droppable>
+                    </div>
+                  );
+                })()}
+
+                {/* Section Tasks */}
+                {sections
+                  .sort((a, b) => a.order - b.order)
+                  .map((section) => {
+                    const sectionTodos = todos
+                      .filter(todo => !todo.parentId && todo.sectionId === section.id)
+                      .sort((a, b) => (a.order || 0) - (b.order || 0));
+                    
+                    let visibleSectionTodos = hideCompleted
+                      ? sectionTodos.filter(t => !t.completed)
+                      : sectionTodos;
+
+                    if (showSelectedOnly && selectedTodos.length > 0) {
+                      visibleSectionTodos = visibleSectionTodos.filter(t =>
+                        selectedTodos.includes(t.id)
+                      );
+                    }
+
+                    if (visibleSectionTodos.length === 0) return null;
+
+                    return (
+                      <div key={section.id} className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 bg-card rounded-lg border">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              SECTION_COLORS.find(c => c.value === section.color)?.class || "bg-blue-500"
+                            }`}
+                          />
+                          <h3 className="font-semibold text-lg">{section.name}</h3>
+                          <span className="text-sm text-muted-foreground">
+                            ({visibleSectionTodos.length} مهمة)
+                          </span>
+                          {section.description && (
+                            <span className="text-sm text-muted-foreground">
+                              - {section.description}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <Droppable droppableId={`section-${section.id}`}>
+                          {(provided) => (
+                            <div
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className="space-y-3"
+                            >
+                              {visibleSectionTodos.map((todo, index) => {
+                                const subTodos = todos
+                                  .filter((t) => t.parentId === todo.id)
+                                  .sort((a, b) => (a.order || 0) - (b.order || 0));
+                                let visibleSubTodos = hideCompleted
+                                  ? subTodos.filter((t) => !t.completed)
+                                  : subTodos;
+
+                                if (showSelectedOnly && selectedTodos.length > 0) {
+                                  visibleSubTodos = visibleSubTodos.filter(t =>
+                                    selectedTodos.includes(t.id)
+                                  );
+                                }
+
+                                return (
+                                  <div key={todo.id} className="space-y-2">
+                                    <Draggable draggableId={todo.id} index={index}>
+                                      {(provided, snapshot) => (
+                                        <div
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          style={provided.draggableProps.style}
+                                        >
+                                          <TodoItem
+                                            todo={todo}
+                                            isSubTask={false}
+                                            onUpdate={updateTodo}
+                                            onToggle={toggleTodo}
+                                            onDelete={deleteTodo}
+                                            onContextMenu={handleContextMenu}
+                                            savedTasks={savedTasks}
+                                            onSaveTask={saveTask}
+                                            onUseSavedTask={useSavedTask}
+                                            onAddTask={() => addTodo("مهمة جديدة")}
+                                            showTextOnly={showTextOnly}
+                                            dragHandleProps={provided.dragHandleProps}
+                                            isDragging={snapshot.isDragging}
+                                            globalPromptMode={globalPromptMode}
+                                            globalFontSize={globalFontSize}
+                                            globalLineHeight={globalLineHeight}
+                                            isSelected={selectedTodos.includes(todo.id)}
+                                            onToggleSelect={toggleSelectTodo}
+                                            soundEnabled={soundEnabled}
+                                          />
+                                        </div>
+                                      )}
+                                    </Draggable>
+
+                                    {visibleSubTodos.length > 0 && (
+                                      <div className="ml-6 mt-3">
+                                        <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
+                                          <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                          <span className="text-sm font-medium text-primary">
+                                            المهام الفرعية ({visibleSubTodos.length})
+                                          </span>
+                                        </div>
+                                        
+                                        <Droppable droppableId={todo.id}>
+                                          {(provided) => (
+                                            <div
+                                              {...provided.droppableProps}
+                                              ref={provided.innerRef}
+                                              className="space-y-2"
+                                            >
+                                              {visibleSubTodos.map((subTodo, subIndex) => (
+                                                <Draggable
+                                                  key={subTodo.id}
+                                                  draggableId={subTodo.id}
+                                                  index={subIndex}
+                                                >
+                                                  {(provided, snapshot) => (
+                                                    <div
+                                                      ref={provided.innerRef}
+                                                      {...provided.draggableProps}
+                                                      style={provided.draggableProps.style}
+                                                    >
+                                                      <TodoItem
+                                                        todo={subTodo}
+                                                        isSubTask={true}
+                                                        onUpdate={updateTodo}
+                                                        onToggle={toggleTodo}
+                                                        onDelete={deleteTodo}
+                                                        onContextMenu={handleContextMenu}
+                                                        savedTasks={savedTasks}
+                                                        onSaveTask={saveTask}
+                                                        onUseSavedTask={useSavedTask}
+                                                        onAddTask={() => addTodo("مهمة جديدة")}
+                                                        showTextOnly={showTextOnly}
+                                                        dragHandleProps={provided.dragHandleProps}
+                                                        isDragging={snapshot.isDragging}
+                                                        globalPromptMode={globalPromptMode}
+                                                        globalFontSize={globalFontSize}
+                                                        globalLineHeight={globalLineHeight}
+                                                        isSelected={selectedTodos.includes(subTodo.id)}
+                                                        onToggleSelect={toggleSelectTodo}
+                                                        soundEnabled={soundEnabled}
+                                                      />
+                                                    </div>
+                                                  )}
+                                                </Draggable>
+                                              ))}
+                                              {provided.placeholder}
+                                            </div>
+                                          )}
+                                        </Droppable>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
                       </div>
                     );
                   })}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
+              </div>
+            ) : (
+              // Show only current section
+              <div className="space-y-3">
+                <Droppable droppableId={`section-${currentSection}`}>
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-3"
+                    >
+                      {paginatedTodos.map((todo, index) => {
+                        const subTodos = todos
+                          .filter((t) => t.parentId === todo.id)
+                          .sort((a, b) => (a.order || 0) - (b.order || 0));
+                        let visibleSubTodos = hideCompleted
+                          ? subTodos.filter((t) => !t.completed)
+                          : subTodos;
+
+                        // Apply selected filter for sub-todos if enabled
+                        if (showSelectedOnly && selectedTodos.length > 0) {
+                          visibleSubTodos = visibleSubTodos.filter(t =>
+                            selectedTodos.includes(t.id)
+                          );
+                        }
+
+                        return (
+                          <div key={todo.id} className="space-y-2">
+                            <Draggable draggableId={todo.id} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  style={provided.draggableProps.style}
+                                >
+                                  <TodoItem
+                                    todo={todo}
+                                    isSubTask={false}
+                                    onUpdate={updateTodo}
+                                    onToggle={toggleTodo}
+                                    onDelete={deleteTodo}
+                                    onContextMenu={handleContextMenu}
+                                    savedTasks={savedTasks}
+                                    onSaveTask={saveTask}
+                                    onUseSavedTask={useSavedTask}
+                                    onAddTask={() => addTodo("مهمة جديدة")}
+                                    showTextOnly={showTextOnly}
+                                    dragHandleProps={provided.dragHandleProps}
+                                    isDragging={snapshot.isDragging}
+                                    globalPromptMode={globalPromptMode}
+                                    globalFontSize={globalFontSize}
+                                    globalLineHeight={globalLineHeight}
+                                    isSelected={selectedTodos.includes(todo.id)}
+                                    onToggleSelect={toggleSelectTodo}
+                                    soundEnabled={soundEnabled}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+
+                            {visibleSubTodos.length > 0 && (
+                              <div className="ml-6 mt-3">
+                                {/* Subtasks Header */}
+                                <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                  <span className="text-sm font-medium text-primary">
+                                    المهام الفرعية ({visibleSubTodos.length})
+                                  </span>
+                                </div>
+                                
+                                <Droppable droppableId={todo.id}>
+                                  {(provided) => (
+                                    <div
+                                      {...provided.droppableProps}
+                                      ref={provided.innerRef}
+                                      className="space-y-2"
+                                    >
+                                      {visibleSubTodos.map((subTodo, subIndex) => (
+                                        <Draggable
+                                          key={subTodo.id}
+                                          draggableId={subTodo.id}
+                                          index={subIndex}
+                                        >
+                                          {(provided, snapshot) => (
+                                            <div
+                                              ref={provided.innerRef}
+                                              {...provided.draggableProps}
+                                              style={provided.draggableProps.style}
+                                            >
+                                              <TodoItem
+                                                todo={subTodo}
+                                                isSubTask={true}
+                                                onUpdate={updateTodo}
+                                                onToggle={toggleTodo}
+                                                onDelete={deleteTodo}
+                                                onContextMenu={handleContextMenu}
+                                                savedTasks={savedTasks}
+                                                onSaveTask={saveTask}
+                                                onUseSavedTask={useSavedTask}
+                                                onAddTask={() => addTodo("مهمة جديدة")}
+                                                showTextOnly={showTextOnly}
+                                                dragHandleProps={provided.dragHandleProps}
+                                                isDragging={snapshot.isDragging}
+                                                globalPromptMode={globalPromptMode}
+                                                globalFontSize={globalFontSize}
+                                                globalLineHeight={globalLineHeight}
+                                                isSelected={selectedTodos.includes(subTodo.id)}
+                                                onToggleSelect={toggleSelectTodo}
+                                                soundEnabled={soundEnabled}
+                                              />
+                                            </div>
+                                          )}
+                                        </Draggable>
+                                      ))}
+                                      {provided.placeholder}
+                                    </div>
+                                  )}
+                                </Droppable>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            )}
           </div>
         </DragDropContext>
 

@@ -16,6 +16,7 @@ export interface Todo {
   text: string;
   completed: boolean;
   parentId: string | null;
+  sectionId: string | null; // New field for section association
   order: number;
   createdAt: number;
   updatedAt: number;
@@ -29,10 +30,21 @@ export interface Todo {
   attachments?: TodoAttachment[]; // New field for file attachments
 }
 
+export interface Section {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   todos: Todo[];
+  sections: Section[];
   createdAt: number;
   updatedAt: number;
   description?: string;

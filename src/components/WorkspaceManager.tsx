@@ -97,6 +97,7 @@ const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
       description: newWorkspace.description.trim(),
       color: newWorkspace.color,
       todos: [],
+      sections: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -253,6 +254,7 @@ const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
           description: data.workspace.description || "",
           color: data.workspace.color || "blue",
           todos: data.workspace.todos || [],
+          sections: data.workspace.sections || [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
