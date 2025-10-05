@@ -82,7 +82,9 @@ const TodoList = () => {
   const [hideCompleted, setHideCompleted] = useState(() => {
     try {
       const saved = localStorage.getItem("hideCompleted");
-      return saved ? JSON.parse(saved) : false;
+      const value = saved ? JSON.parse(saved) : false;
+      console.log('Initializing hideCompleted from localStorage:', value);
+      return value;
     } catch (error) {
       console.warn("Error reading hideCompleted from localStorage:", error);
       return false;
@@ -305,7 +307,9 @@ const TodoList = () => {
 
   useEffect(() => {
     try {
+      console.log('Saving hideCompleted to localStorage:', hideCompleted);
       localStorage.setItem("hideCompleted", JSON.stringify(hideCompleted));
+      console.log('Successfully saved hideCompleted to localStorage');
     } catch (error) {
       console.warn("Error saving hideCompleted to localStorage:", error);
     }
@@ -1460,6 +1464,8 @@ const TodoList = () => {
   let visibleMainTodos = hideCompleted
     ? mainTodos.filter((t) => !t.completed)
     : mainTodos;
+  
+  console.log('Filtering todos - hideCompleted:', hideCompleted, 'mainTodos count:', mainTodos.length, 'visibleMainTodos count:', visibleMainTodos.length);
 
   // Apply selected filter if enabled
   if (showSelectedOnly && selectedTodos.length > 0) {
@@ -1660,7 +1666,13 @@ const TodoList = () => {
               نسخ المهام
             </Button>
             <Button
-              onClick={() => setHideCompleted(!hideCompleted)}
+              onClick={() => {
+                console.log('Hide completed button clicked. Current state:', hideCompleted);
+                const newState = !hideCompleted;
+                setHideCompleted(newState);
+                console.log('New state will be:', newState);
+                toast.success(newState ? "تم إخفاء المهام المكتملة" : "تم إظهار المهام المكتملة");
+              }}
               variant={hideCompleted ? "default" : "outline"}
               className="gap-2 hover:shadow-md transition-smooth"
             >
@@ -1669,7 +1681,7 @@ const TodoList = () => {
               ) : (
                 <EyeOff className="w-4 h-4" />
               )}
-              {hideCompleted ? "إظهار المكتملة" : "إخفاء المكتملة"}
+              {hideCompleted ? "إظهار المكتملة" : "إخفاء المكتملة"} {hideCompleted ? "(مخفية)" : "(مرئية)"}
             </Button>
 
             <Button
