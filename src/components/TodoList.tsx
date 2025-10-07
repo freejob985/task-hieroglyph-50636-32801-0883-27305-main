@@ -548,12 +548,22 @@ const TodoList = () => {
           });
         }
         
-        // إضافة المهام الفرعية
+        // إضافة المهام الفرعية الجديدة إذا كانت موجودة
+        if (todo.subTasks && todo.subTasks.length > 0) {
+          result += '\n\nيجب تنفيذ المهام الاتية';
+          todo.subTasks.forEach(subTask => {
+            const status = subTask.completed ? '✓' : '✗';
+            result += `\n${status} ${subTask.text}`;
+          });
+        }
+        
+        // إضافة المهام الفرعية القديمة إذا كانت موجودة (للتوافق مع الإصدارات السابقة)
         if (subTasks.length > 0) {
-          result += '\n\nالمهام الفرعية:';
+          result += '\n\nالمهام الفرعية (قديمة):';
           subTasks.forEach((sub) => {
             const cleanSubText = removeMarkdownSyntax(sub.text);
-            result += `\n• ${cleanSubText}`;
+            const status = sub.completed ? '✓' : '✗';
+            result += `\n${status} ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
             }
@@ -576,7 +586,7 @@ const TodoList = () => {
 
     navigator.clipboard.writeText(text);
     playSound('copy-all');
-    toast.success("تم نسخ المهام غير المكتملة مع العناوين والروابط");
+    toast.success("تم نسخ المهام غير المكتملة مع العناوين والروابط والمهام الفرعية");
   }, [todos, playSound]);
 
   // دالة لحذف علامات المارك داون
@@ -652,12 +662,22 @@ const TodoList = () => {
           });
         }
         
-        // إضافة المهام الفرعية
+        // إضافة المهام الفرعية الجديدة إذا كانت موجودة
+        if (todo.subTasks && todo.subTasks.length > 0) {
+          result += '\n\nيجب تنفيذ المهام الاتية';
+          todo.subTasks.forEach(subTask => {
+            const status = subTask.completed ? '✓' : '✗';
+            result += `\n${status} ${subTask.text}`;
+          });
+        }
+        
+        // إضافة المهام الفرعية القديمة إذا كانت موجودة (للتوافق مع الإصدارات السابقة)
         if (subTasks.length > 0) {
-          result += '\n\nالمهام الفرعية:';
+          result += '\n\nالمهام الفرعية (قديمة):';
           subTasks.forEach((sub) => {
             const cleanSubText = removeMarkdownSyntax(sub.text);
-            result += `\n• ${cleanSubText}`;
+            const status = sub.completed ? '✓' : '✗';
+            result += `\n${status} ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
             }
@@ -680,7 +700,7 @@ const TodoList = () => {
 
     navigator.clipboard.writeText(text);
     playSound('copy-selected');
-    toast.success(`تم نسخ ${selectedTodos.length} مهمة مع العناوين والروابط`);
+    toast.success(`تم نسخ ${selectedTodos.length} مهمة مع العناوين والروابط والمهام الفرعية`);
     setSelectedTodos([]);
   };
 
@@ -874,7 +894,7 @@ const TodoList = () => {
         }
         
         if (subTasks.length > 0) {
-          result += '\n\nالمهام الفرعية:';
+          result += '\n\nيجب تنفيذ المهام الاتية';
           subTasks.forEach((sub) => {
             const cleanSubText = removeMarkdownSyntax(sub.text);
             result += `\n• ${cleanSubText}`;

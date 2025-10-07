@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck, Paperclip, Plus } from 'lucide-react';
-import { Todo, TodoLink, TodoAttachment } from '@/types/todo';
+import { Todo, TodoLink, TodoAttachment, SubTask } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { improveTextWithGemini, generatePrompt, generateTaskTitle } from '@/utils/geminiService';
 import TechnologyInput from './TechnologyInput';
 import LinksManager from './LinksManager';
+import SubTaskList from './SubTaskList';
 import { toast } from 'sonner';
 import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 
@@ -70,6 +71,7 @@ const TodoItem = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLinksCollapsed, setIsLinksCollapsed] = useState(true);
   const [isAttachmentsCollapsed, setIsAttachmentsCollapsed] = useState(true);
+  const [isSubTasksCollapsed, setIsSubTasksCollapsed] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isListening, startListening, stopListening } = useSpeechRecognition(
@@ -315,6 +317,10 @@ const TodoItem = ({
     setEditAttachments(newAttachments);
   };
 
+  const handleSubTasksChange = (subTasks: SubTask[]) => {
+    onUpdate(todo.id, todo.text, { subTasks });
+  };
+
   const handleCopyTaskWithTitle = () => {
     let copyText = '';
     
@@ -326,6 +332,15 @@ const TodoItem = ({
     // إضافة النص مع حذف علامات المارك داون
     const cleanText = removeMarkdownSyntax(todo.text);
     copyText += `المهمة: ${cleanText}`;
+    
+    // إضافة يجب تنفيذ المهام الاتية إذا كانت موجودة
+    if (todo.subTasks && todo.subTasks.length > 0) {
+      copyText += '\n\nيجب تنفيذ المهام الاتية:';
+      todo.subTasks.forEach(subTask => {
+        const status = subTask.completed ? '✓' : '✗';
+        copyText += `\n${status} ${subTask.text}`;
+      });
+    }
     
     // إضافة الرابط القديم إذا كان موجوداً (للتوافق مع الإصدارات السابقة)
     if (todo.url) {
@@ -350,7 +365,7 @@ const TodoItem = ({
     
     navigator.clipboard.writeText(copyText);
     playSound('copy-single');
-    toast.success('تم نسخ المهمة مع العنوان والروابط');
+    toast.success('تم نسخ المهمة مع العنوان والروابط والمهام الفرعية');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -488,6 +503,17 @@ const TodoItem = ({
                   isEditing={true}
                   isCollapsed={isLinksCollapsed}
                   onToggleCollapse={() => setIsLinksCollapsed(!isLinksCollapsed)}
+                  soundEnabled={soundEnabled}
+                />
+              </div>
+
+              {/* SubTasks Manager */}
+              <div className="space-y-2">
+                <SubTaskList
+                  subTasks={todo.subTasks || []}
+                  onSubTasksChange={handleSubTasksChange}
+                  isCollapsed={isSubTasksCollapsed}
+                  onToggleCollapse={() => setIsSubTasksCollapsed(!isSubTasksCollapsed)}
                   soundEnabled={soundEnabled}
                 />
               </div>
@@ -818,6 +844,19 @@ const TodoItem = ({
                         isEditing={false}
                         isCollapsed={isLinksCollapsed}
                         onToggleCollapse={() => setIsLinksCollapsed(!isLinksCollapsed)}
+                        soundEnabled={soundEnabled}
+                      />
+                    </div>
+                  )}
+
+                  {/* SubTasks Display */}
+                  {todo.subTasks && todo.subTasks.length > 0 && (
+                    <div className="mt-3">
+                      <SubTaskList
+                        subTasks={todo.subTasks}
+                        onSubTasksChange={handleSubTasksChange}
+                        isCollapsed={isSubTasksCollapsed}
+                        onToggleCollapse={() => setIsSubTasksCollapsed(!isSubTasksCollapsed)}
                         soundEnabled={soundEnabled}
                       />
                     </div>

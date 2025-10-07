@@ -11,6 +11,14 @@ export interface TodoAttachment {
   createdAt: number;
 }
 
+export interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Todo {
   id: string;
   text: string;
@@ -28,6 +36,7 @@ export interface Todo {
   title?: string;
   links?: TodoLink[]; // New field for multiple links
   attachments?: TodoAttachment[]; // New field for file attachments
+  subTasks?: SubTask[]; // New field for subtasks
 }
 
 export interface Section {
