@@ -64,7 +64,11 @@ const TodoItem = ({
   statuses = [],
   onStatusesChange,
 }: TodoItemProps) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => {
+    // إذا كانت المهمة جديدة (تم إنشاؤها خلال آخر 5 ثوانٍ)، ابدأ في وضع التعديل
+    const isNewTask = todo.createdAt && (Date.now() - todo.createdAt) < 5000;
+    return isNewTask;
+  });
   const [editText, setEditText] = useState(todo.text);
   const [editUrl, setEditUrl] = useState(todo.url || '');
   const [editTitle, setEditTitle] = useState(todo.title || '');
