@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Todo, ContextMenuPosition, Workspace, SavedTask, ArchivedTask, Section } from "@/types/todo";
+import { Todo, ContextMenuPosition, Workspace, SavedTask, ArchivedTask, Section, TaskStatus } from "@/types/todo";
 import TodoItem from "./TodoItem";
 import ContextMenu from "./ContextMenu";
 import ProgressBar from "./ProgressBar";
@@ -26,6 +26,7 @@ import CheckboxLegend from "./CheckboxLegend";
 import WorkspaceManager from "./WorkspaceManager";
 import ArchiveManager from "./ArchiveManager";
 import SectionManager from "./SectionManager";
+import StatusManager from "./StatusManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -77,6 +78,8 @@ const TodoList = () => {
   const [sections, setSections] = useState<Section[]>([]);
   const [currentSection, setCurrentSection] = useState<string | null>(null);
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
+  const [statuses, setStatuses] = useState<TaskStatus[]>([]);
+  const [statusesCollapsed, setStatusesCollapsed] = useState(false);
   const [savedTasks, setSavedTasks] = useState<SavedTask[]>([]);
   const [newTaskText, setNewTaskText] = useState("");
   const [hideCompleted, setHideCompleted] = useState(() => {
@@ -185,12 +188,68 @@ const TodoList = () => {
     const savedSections = localStorage.getItem("sections");
     const savedCurrentSection = localStorage.getItem("currentSection");
     const savedSectionsCollapsed = localStorage.getItem("sectionsCollapsed");
+    const savedStatuses = localStorage.getItem("statuses");
+    const savedStatusesCollapsed = localStorage.getItem("statusesCollapsed");
 
     if (saved) setTodos(JSON.parse(saved));
     if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
     if (savedCurrentWorkspace) setCurrentWorkspace(savedCurrentWorkspace);
     if (savedTasksData) setSavedTasks(JSON.parse(savedTasksData));
     if (savedArchivedTasks) setArchivedTasks(JSON.parse(savedArchivedTasks));
+    if (savedStatuses) {
+      setStatuses(JSON.parse(savedStatuses));
+    } else {
+      // إنشاء حالات افتراضية إذا لم تكن موجودة
+      const defaultStatuses = [
+        {
+          id: "pending",
+          name: "قيد الانتظار",
+          color: "#F59E0B",
+          icon: "⏳",
+          order: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          id: "in-progress",
+          name: "قيد التنفيذ",
+          color: "#3B82F6",
+          icon: "🚀",
+          order: 1,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          id: "completed",
+          name: "مكتملة",
+          color: "#10B981",
+          icon: "✅",
+          order: 2,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          id: "cancelled",
+          name: "ملغية",
+          color: "#EF4444",
+          icon: "❌",
+          order: 3,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          id: "on-hold",
+          name: "معلقة",
+          color: "#8B5CF6",
+          icon: "⏸️",
+          order: 4,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+      ];
+      setStatuses(defaultStatuses);
+    }
+    if (savedStatusesCollapsed) setStatusesCollapsed(JSON.parse(savedStatusesCollapsed));
     if (savedSections) {
       setSections(JSON.parse(savedSections));
     } else {
@@ -260,6 +319,14 @@ const TodoList = () => {
   useEffect(() => {
     localStorage.setItem("sectionsCollapsed", JSON.stringify(sectionsCollapsed));
   }, [sectionsCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem("statuses", JSON.stringify(statuses));
+  }, [statuses]);
+
+  useEffect(() => {
+    localStorage.setItem("statusesCollapsed", JSON.stringify(statusesCollapsed));
+  }, [statusesCollapsed]);
 
   useEffect(() => {
     localStorage.setItem("globalPromptMode", globalPromptMode);
@@ -1613,6 +1680,16 @@ const TodoList = () => {
           />
         </div>
 
+        {/* Status Manager */}
+        <div className="mb-6">
+          <StatusManager
+            statuses={statuses}
+            onStatusesChange={setStatuses}
+            isCollapsed={statusesCollapsed}
+            onToggleCollapse={() => setStatusesCollapsed(!statusesCollapsed)}
+          />
+        </div>
+
         {/* Toolbar */}
         {showToolbar && (
           <div className="mb-6 flex flex-wrap gap-2 justify-center" style={{ fontSize: `${globalFontSize}px` }}>
@@ -2131,6 +2208,8 @@ const TodoList = () => {
                                           isDragging={snapshot.isDragging}
                                           globalPromptMode={globalPromptMode}
                                           globalFontSize={globalFontSize}
+                                          statuses={statuses}
+                                          onStatusesChange={setStatuses}
                                           globalLineHeight={globalLineHeight}
                                           isSelected={selectedTodos.includes(todo.id)}
                                           onToggleSelect={toggleSelectTodo}
@@ -2184,6 +2263,8 @@ const TodoList = () => {
                                                       isDragging={snapshot.isDragging}
                                                       globalPromptMode={globalPromptMode}
                                                       globalFontSize={globalFontSize}
+                                                      statuses={statuses}
+                                                      onStatusesChange={setStatuses}
                                                       globalLineHeight={globalLineHeight}
                                                       isSelected={selectedTodos.includes(subTodo.id)}
                                                       onToggleSelect={toggleSelectTodo}
@@ -2296,6 +2377,8 @@ const TodoList = () => {
                                             isDragging={snapshot.isDragging}
                                             globalPromptMode={globalPromptMode}
                                             globalFontSize={globalFontSize}
+                                            statuses={statuses}
+                                            onStatusesChange={setStatuses}
                                             globalLineHeight={globalLineHeight}
                                             isSelected={selectedTodos.includes(todo.id)}
                                             onToggleSelect={toggleSelectTodo}
@@ -2349,6 +2432,8 @@ const TodoList = () => {
                                                         isDragging={snapshot.isDragging}
                                                         globalPromptMode={globalPromptMode}
                                                         globalFontSize={globalFontSize}
+                                                        statuses={statuses}
+                                                        onStatusesChange={setStatuses}
                                                         globalLineHeight={globalLineHeight}
                                                         isSelected={selectedTodos.includes(subTodo.id)}
                                                         onToggleSelect={toggleSelectTodo}
@@ -2425,6 +2510,8 @@ const TodoList = () => {
                                     isDragging={snapshot.isDragging}
                                     globalPromptMode={globalPromptMode}
                                     globalFontSize={globalFontSize}
+                                    statuses={statuses}
+                                    onStatusesChange={setStatuses}
                                     globalLineHeight={globalLineHeight}
                                     isSelected={selectedTodos.includes(todo.id)}
                                     onToggleSelect={toggleSelectTodo}
@@ -2479,6 +2566,8 @@ const TodoList = () => {
                                                 isDragging={snapshot.isDragging}
                                                 globalPromptMode={globalPromptMode}
                                                 globalFontSize={globalFontSize}
+                                                statuses={statuses}
+                                                onStatusesChange={setStatuses}
                                                 globalLineHeight={globalLineHeight}
                                                 isSelected={selectedTodos.includes(subTodo.id)}
                                                 onToggleSelect={toggleSelectTodo}

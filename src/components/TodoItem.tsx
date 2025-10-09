@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck, Paperclip, Plus } from 'lucide-react';
-import { Todo, TodoLink, TodoAttachment, SubTask } from '@/types/todo';
+import { Check, GripVertical, Sparkles, Mic, MicOff, Wand2, Copy, ZoomIn, ZoomOut, Trash2, Square, CheckSquare, User, ChevronDown, ChevronUp, ArrowRight, Circle, Dot, Link, ExternalLink, CopyCheck, Paperclip, Plus, Tag } from 'lucide-react';
+import { Todo, TodoLink, TodoAttachment, SubTask, TaskStatus } from '@/types/todo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SavedTask } from '@/types/todo';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { improveTextWithGemini, generatePrompt, generateTaskTitle } from '@/utils/geminiService';
 import TechnologyInput from './TechnologyInput';
 import LinksManager from './LinksManager';
 import SubTaskList from './SubTaskList';
+import StatusManager from './StatusManager';
 import { toast } from 'sonner';
 import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 
@@ -35,6 +37,8 @@ interface TodoItemProps {
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
   soundEnabled?: boolean;
+  statuses?: TaskStatus[];
+  onStatusesChange?: (statuses: TaskStatus[]) => void;
 }
 
 const TodoItem = ({
@@ -57,6 +61,8 @@ const TodoItem = ({
   isSelected = false,
   onToggleSelect,
   soundEnabled = true,
+  statuses = [],
+  onStatusesChange,
 }: TodoItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
@@ -72,6 +78,7 @@ const TodoItem = ({
   const [isLinksCollapsed, setIsLinksCollapsed] = useState(true);
   const [isAttachmentsCollapsed, setIsAttachmentsCollapsed] = useState(true);
   const [isSubTasksCollapsed, setIsSubTasksCollapsed] = useState(true);
+  const [isStatusManagerOpen, setIsStatusManagerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isListening, startListening, stopListening } = useSpeechRecognition(
@@ -80,6 +87,13 @@ const TodoItem = ({
     },
     'ar-SA'
   );
+
+  // دالة للحصول على الحالة الحالية
+  const getCurrentStatus = () => {
+    return statuses.find(status => status.id === todo.statusId);
+  };
+
+  const currentStatus = getCurrentStatus();
 
   // دالة لإنشاء أصوات مختلفة للأحداث
   const playSound = (type: 'copy-all' | 'copy-selected' | 'copy-single' | 'copy-link' | 'completion') => {
@@ -321,6 +335,12 @@ const TodoItem = ({
     onUpdate(todo.id, todo.text, { subTasks });
   };
 
+  const handleStatusesChange = (newStatuses: TaskStatus[]) => {
+    if (onStatusesChange) {
+      onStatusesChange(newStatuses);
+    }
+  };
+
   const handleCopyTaskWithTitle = () => {
     let copyText = '';
     
@@ -506,6 +526,7 @@ const TodoItem = ({
                   soundEnabled={soundEnabled}
                 />
               </div>
+
 
               {/* SubTasks Manager */}
               <div className="space-y-2">
@@ -715,7 +736,57 @@ const TodoItem = ({
                     {isImproving ? 'جاري الإنشاء...' : 'إنشاء البرومبت'}
                   </Button>
                 )}
+                
+                {/* Status Selector */}
+                <Select 
+                  value={todo.statusId || 'none'} 
+                  onValueChange={(value) => onUpdate(todo.id, todo.text, { statusId: value === 'none' ? undefined : value })}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                        <span>بدون حالة</span>
+                      </div>
+                    </SelectItem>
+                    {statuses.map((status) => (
+                      <SelectItem key={status.id} value={status.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: status.color }}
+                          ></div>
+                          <span>{status.icon} {status.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <div className="border-t border-border my-1"></div>
+                    <Dialog open={isStatusManagerOpen} onOpenChange={setIsStatusManagerOpen}>
+                      <DialogTrigger asChild>
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-sm">
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            <span>إضافة حالة جديدة</span>
+                          </div>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>إدارة حالات المهام</DialogTitle>
+                        </DialogHeader>
+                        <StatusManager
+                          statuses={statuses}
+                          onStatusesChange={handleStatusesChange}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </SelectContent>
+                </Select>
               </div>
+
             </div>
           ) : (
             <div
@@ -762,6 +833,23 @@ const TodoItem = ({
                       <h3 className="text-lg font-semibold text-foreground" style={{ fontSize: `${globalFontSize * 1.1}px` }}>
                         {todo.title}
                       </h3>
+                    </div>
+                  )}
+
+                  {/* Status Display */}
+                  {currentStatus && (
+                    <div className="mb-3 text-left">
+                      <div 
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shadow-sm"
+                        style={{ 
+                          backgroundColor: `${currentStatus.color}15`,
+                          color: currentStatus.color,
+                          border: `1px solid ${currentStatus.color}30`
+                        }}
+                      >
+                        <span className="text-sm">{currentStatus.icon}</span>
+                        <span>{currentStatus.name}</span>
+                      </div>
                     </div>
                   )}
                   

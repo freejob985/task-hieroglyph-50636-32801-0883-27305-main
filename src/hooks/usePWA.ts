@@ -27,9 +27,12 @@ export const usePWA = () => {
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      // Store the event so it can be triggered later
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
+      console.log('PWA install prompt is available');
     };
 
     // Listen for appinstalled event

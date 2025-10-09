@@ -19,12 +19,23 @@ export interface SubTask {
   updatedAt: number;
 }
 
+export interface TaskStatus {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Todo {
   id: string;
   text: string;
   completed: boolean;
   parentId: string | null;
   sectionId: string | null; // New field for section association
+  statusId?: string; // New field for task status
   order: number;
   createdAt: number;
   updatedAt: number;
@@ -54,6 +65,7 @@ export interface Workspace {
   name: string;
   todos: Todo[];
   sections: Section[];
+  statuses: TaskStatus[];
   createdAt: number;
   updatedAt: number;
   description?: string;
