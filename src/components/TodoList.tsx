@@ -619,7 +619,7 @@ const TodoList = () => {
         if (todo.subTasks && todo.subTasks.length > 0) {
           result += '\n\nيجب تنفيذ المهام الاتية';
           todo.subTasks.forEach(subTask => {
-            const status = subTask.completed ? '✓' : '✗';
+            const status = subTask.completed ? '[✓]' : '[✗]';
             result += `\n${status} ${subTask.text}`;
           });
         }
@@ -629,7 +629,7 @@ const TodoList = () => {
           result += '\n\nالمهام الفرعية (قديمة):';
           subTasks.forEach((sub) => {
             const cleanSubText = removeMarkdownSyntax(sub.text);
-            const status = sub.completed ? '✓' : '✗';
+            const status = sub.completed ? '[✓]' : '[✗]';
             result += `\n${status} ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
@@ -651,7 +651,11 @@ const TodoList = () => {
       })
       .join("\n\n" + "=".repeat(50) + "\n\n");
 
-    navigator.clipboard.writeText(text);
+    // إضافة ملاحظة توضيحية
+    const noteText = text + "\n\n" + "=".repeat(50) + "\n" + 
+      "ملاحظة: المهام المكتملة معلمة بعلامة [✓] والمهام غير المكتملة معلمة بعلامة [✗]";
+    
+    navigator.clipboard.writeText(noteText);
     playSound('copy-all');
     toast.success("تم نسخ المهام غير المكتملة مع العناوين والروابط والمهام الفرعية");
   }, [todos, playSound]);
@@ -733,7 +737,7 @@ const TodoList = () => {
         if (todo.subTasks && todo.subTasks.length > 0) {
           result += '\n\nيجب تنفيذ المهام الاتية';
           todo.subTasks.forEach(subTask => {
-            const status = subTask.completed ? '✓' : '✗';
+            const status = subTask.completed ? '[✓]' : '[✗]';
             result += `\n${status} ${subTask.text}`;
           });
         }
@@ -743,7 +747,7 @@ const TodoList = () => {
           result += '\n\nالمهام الفرعية (قديمة):';
           subTasks.forEach((sub) => {
             const cleanSubText = removeMarkdownSyntax(sub.text);
-            const status = sub.completed ? '✓' : '✗';
+            const status = sub.completed ? '[✓]' : '[✗]';
             result += `\n${status} ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
@@ -765,7 +769,11 @@ const TodoList = () => {
       })
       .join("\n\n" + "=".repeat(50) + "\n\n");
 
-    navigator.clipboard.writeText(text);
+    // إضافة ملاحظة توضيحية
+    const noteText = text + "\n\n" + "=".repeat(50) + "\n" + 
+      "ملاحظة: المهام المكتملة معلمة بعلامة [✓] والمهام غير المكتملة معلمة بعلامة [✗]";
+    
+    navigator.clipboard.writeText(noteText);
     playSound('copy-selected');
     toast.success(`تم نسخ ${selectedTodos.length} مهمة مع العناوين والروابط والمهام الفرعية`);
     setSelectedTodos([]);
@@ -964,7 +972,8 @@ const TodoList = () => {
           result += '\n\nيجب تنفيذ المهام الاتية';
           subTasks.forEach((sub) => {
             const cleanSubText = removeMarkdownSyntax(sub.text);
-            result += `\n• ${cleanSubText}`;
+            const status = sub.completed ? '[✓]' : '[✗]';
+            result += `\n${status} ${cleanSubText}`;
             if (sub.url) {
               result += `\n  🔗 ${sub.url}`;
             }
@@ -985,7 +994,11 @@ const TodoList = () => {
       })
       .join("\n\n" + "=".repeat(50) + "\n\n");
 
-    navigator.clipboard.writeText(text);
+    // إضافة ملاحظة توضيحية
+    const noteText = text + "\n\n" + "=".repeat(50) + "\n" + 
+      "ملاحظة: المهام المكتملة معلمة بعلامة [✓] والمهام غير المكتملة معلمة بعلامة [✗]";
+    
+    navigator.clipboard.writeText(noteText);
     playSound('copy-selected');
     toast.success(`تم نسخ ${tasksToCopy.length} مهمة من القسم`);
   };
@@ -1013,6 +1026,7 @@ const TodoList = () => {
         name,
         todos: [...todos],
         sections: [...sections],
+        statuses: [...statuses],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

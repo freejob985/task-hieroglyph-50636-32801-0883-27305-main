@@ -361,7 +361,7 @@ const TodoItem = ({
     if (todo.subTasks && todo.subTasks.length > 0) {
       copyText += '\n\nيجب تنفيذ المهام الاتية:';
       todo.subTasks.forEach(subTask => {
-        const status = subTask.completed ? '✓' : '✗';
+        const status = subTask.completed ? '[✓]' : '[✗]';
         copyText += `\n${status} ${subTask.text}`;
       });
     }
@@ -387,7 +387,11 @@ const TodoItem = ({
       });
     }
     
-    navigator.clipboard.writeText(copyText);
+    // إضافة ملاحظة توضيحية
+    const noteText = copyText + "\n\n" + "=".repeat(50) + "\n" + 
+      "ملاحظة: المهام المكتملة معلمة بعلامة [✓] والمهام غير المكتملة معلمة بعلامة [✗]";
+    
+    navigator.clipboard.writeText(noteText);
     playSound('copy-single');
     toast.success('تم نسخ المهمة مع العنوان والروابط والمهام الفرعية');
   };
